@@ -7,6 +7,4 @@ import land.src.jvmtb.jvm.Struct
 class ClassLoaderData(address: Address) : Struct(address) {
     val klasses: Klass by struct("_klasses")
     val next: ClassLoaderData by struct("_next")
-
-    override val type: String = "ClassLoaderData"
 }

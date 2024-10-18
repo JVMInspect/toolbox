@@ -1,10 +1,12 @@
 package land.src.jvmtb.dsl
 
-import land.src.jvmtb.jvm.Field
 import land.src.jvmtb.jvm.Struct
 import land.src.jvmtb.jvm.oop.Oop
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
+
+val Struct.typeName get() =
+    type ?: this::class.simpleName ?: error("Struct ${this::class.java.name} does not have a type name.")
 
 class FieldImpl<V : Any>(
     private val type: KClass<V>,
@@ -19,7 +21,7 @@ class FieldImpl<V : Any>(
 
     private val fieldAddress: Long by lazy {
         val base = struct.address.base
-        val type = machine.type(struct.type)
+        val type = machine.type(struct.typeName)
         val field = type.field(fieldName)
         val address = if (field.isStatic) field.offsetOrAddress else base + field.offsetOrAddress
         if (!isPointer) address else machine.getAddress(address)
@@ -59,7 +61,7 @@ class FieldImpl<V : Any>(
 class OffsetImpl(struct: Struct, fieldName: String) {
     private val offset: Long by lazy {
         val machine = struct.address.scope.vm
-        val type = machine.type(struct.type)
+        val type = machine.type(struct.typeName)
         val field = type.field(fieldName)
         field.offsetOrAddress
     }

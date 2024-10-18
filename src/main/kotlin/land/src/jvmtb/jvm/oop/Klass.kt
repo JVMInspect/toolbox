@@ -18,6 +18,4 @@ open class Klass(address: Address) : Struct(address) {
 
     val name: Symbol by oop("_name")
     val nextLink: Klass by struct("_next_link")
-
-    override val type = "Klass"
 }

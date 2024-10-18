@@ -13,6 +13,9 @@ private val ConstructorType = MethodType
 private fun isStruct(type: KClass<*>) =
     Struct::class.java.isAssignableFrom(type.java)
 
+private fun isImplementedStruct(type: KClass<*>) =
+    Struct::class != type
+
 class StructCache(val scope: VMScope) : Factory {
     val map = mutableMapOf<KClass<*>, Factory<*>>()
 
@@ -20,6 +23,9 @@ class StructCache(val scope: VMScope) : Factory {
         init {
             check(isStruct(type)) {
                 "Cannot create struct factory for non struct type ${type.simpleName}"
+            }
+            check(isImplementedStruct(type)) {
+                "Cannot create struct factory for non implemented struct type ${type.simpleName}"
             }
         }
 

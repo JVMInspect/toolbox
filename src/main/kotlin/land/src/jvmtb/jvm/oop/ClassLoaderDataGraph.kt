@@ -6,6 +6,4 @@ import land.src.jvmtb.jvm.Struct
 
 class ClassLoaderDataGraph(address: Address) : Struct(address) {
     val head: ClassLoaderData by struct("_head")
-
-    override val type = "ClassLoaderDataGraph"
 }

@@ -27,6 +27,4 @@ class Symbol(address: Address) : Oop(address) {
         val dis = DataInputStream(ByteArrayInputStream(tmp))
         return dis.readUTF()
     }
-
-    override val type: String = "Symbol"
 }
