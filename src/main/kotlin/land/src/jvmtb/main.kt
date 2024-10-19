@@ -23,7 +23,12 @@ fun main() {
     val graph: ClassLoaderDataGraph = vm.structs()!!
     for (loadedClass in graph.getLoadedClasses()) {
         println(loadedClass.name.string)
-        println(loadedClass.structs.sizeOf<Symbol>())
+        val supers = loadedClass.secondarySupers
+        if (supers != null) {
+            for (s in supers) {
+                println("\tsuper: "+ s.name.string)
+            }
+        }
     }
     proc.detach()
 }

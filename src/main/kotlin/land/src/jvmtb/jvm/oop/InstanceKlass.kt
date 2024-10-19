@@ -16,7 +16,7 @@ class InstanceKlass(address: Address) : Klass(address) {
     val permittedSubclasses: Array<Short> by lazy {
         val nestHostAddress = type.field("_nest_members").offsetOrAddress + pointerSize
         val permittedSubclassesAddress = nestHostAddress + pointerSize
-        arrays(permittedSubclassesAddress, false)
+        arrays(permittedSubclassesAddress, false)!!
     }
 
     val recordComponents: Array<Short>? by lazy {

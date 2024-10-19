@@ -39,9 +39,8 @@ open class NullableFieldImpl<V : Any>(
     isPointer: Boolean
 ) : BaseFieldImpl<V>(type, struct, fieldName, isOop, isStruct, isPointer) {
     operator fun setValue(thisRef: Struct, property: KProperty<*>, value: V) {
-        if (factory != null && machine.getAddress(fieldAddress) == 0L) {
+        if (factory != null && machine.getAddress(fieldAddress) == 0L)
             return
-        }
 
         return factory?.invoke(this.type, machine.getAddress(fieldAddress)) as? Unit ?: when (this.type) {
             Byte::class -> machine.putByte(fieldAddress, value as Byte)
@@ -59,13 +58,11 @@ open class NullableFieldImpl<V : Any>(
 
     @Suppress("Unchecked_Cast")
     open operator fun getValue(thisRef: Struct, property: KProperty<*>): V? {
-        if (fieldAddress == 0L) {
+        if (fieldAddress == 0L)
             return null
-        }
 
-        if (factory != null) {
+        if (factory != null)
             return factory.invoke(this.type, machine.getAddress(fieldAddress)) as? V
-        }
 
         return when (this.type) {
             Byte::class -> machine.getByte(fieldAddress)

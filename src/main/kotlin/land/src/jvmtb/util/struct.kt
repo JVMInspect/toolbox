@@ -15,12 +15,8 @@ val KClass<*>.isArray get() =
 val KClass<*>.isOop get() =
     Oop::class.java.isAssignableFrom(java)
 
-
 val KClass<*>.isImplementedStruct get() =
     isStruct && Struct::class != this
-
-val KClass<*>.structName get() =
-    simpleName
 
 fun VMScope.sizeOf(type: KClass<*>): Int {
     if (type.isStruct)

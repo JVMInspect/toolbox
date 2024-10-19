@@ -2,6 +2,7 @@ package land.src.jvmtb.dsl
 
 import land.src.jvmtb.jvm.Struct
 import land.src.jvmtb.jvm.oop.Array
+import land.src.jvmtb.util.isArray
 import land.src.jvmtb.util.isStruct
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
@@ -32,8 +33,6 @@ open class NullableArrayField<E : Any>(
     isPointer: Boolean,
     isElementPointer: Boolean
 ) : BaseArrayField<E>(struct, fieldName, arrayType, elementType, isPointer, isElementPointer) {
-
-    @Suppress("Unchecked_Cast")
     open operator fun getValue(thisRef: Struct, property: KProperty<*>): Array<E>? {
         if (fieldAddress == 0L) {
             return null
@@ -56,8 +55,8 @@ class ArrayField<E : Any>(
 
 inline fun <reified E : Any, reified A : Array<E>> Struct.array(
     fieldName: String,
-    isPointer: Boolean = false,
-    isElementPointer: Boolean = A::class.isStruct
+    isPointer: Boolean = true,
+    isElementPointer: Boolean = E::class.isStruct && !E::class.isArray
 ) = ArrayField(
     struct = this,
     fieldName = fieldName,
@@ -69,8 +68,8 @@ inline fun <reified E : Any, reified A : Array<E>> Struct.array(
 
 inline fun <reified E : Any, reified A : Array<E>> Struct.nullableArray(
     fieldName: String,
-    isPointer: Boolean = false,
-    isElementPointer: Boolean = A::class.isStruct
+    isPointer: Boolean = true,
+    isElementPointer: Boolean = E::class.isStruct && !E::class.isArray
 ) = NullableArrayField(
     struct = this,
     fieldName = fieldName,

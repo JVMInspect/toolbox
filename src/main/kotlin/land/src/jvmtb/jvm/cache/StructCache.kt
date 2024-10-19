@@ -50,7 +50,6 @@ class StructCache(private val scope: VMScope) : Factory {
     @Suppress("Parameter_Name_Changed_On_Override")
     override operator fun invoke(structType: KClass<*>, address: Long): Struct? {
         if (address == 0L) {
-            println("address is null!")
             return null
         }
 
@@ -60,11 +59,11 @@ class StructCache(private val scope: VMScope) : Factory {
         val type = scope.vm.type(name)
         val size = sizes.computeIfAbsent(structType) { type.size }
 
-        println("created $name")
-
-        return struct.also {
-            it.size = size
-            it.type = type
+        with (struct) {
+            this.type = type
+            this.size = size
         }
+
+        return struct
     }
 }

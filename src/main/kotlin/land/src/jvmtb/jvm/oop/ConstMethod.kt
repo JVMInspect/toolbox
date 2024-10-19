@@ -92,7 +92,7 @@ class ConstMethod(address: Address) : Struct(address) {
     val codeEnd: Long get() = codeBase + codeSize
 
     val compressedLineNumberTable: Array<Short> get() {
-        return arrays<Short, Array<Short>>(address = address.base + codeEnd, isElementPointer = false)!!
+        return arrays(address = address.base + codeEnd, isElementPointer = false)!!
     }
 
     val lastU2Element: Long get() {
