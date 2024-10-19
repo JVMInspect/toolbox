@@ -40,7 +40,7 @@ class ConstMethod(address: Address) : Struct(address) {
     val methodAnnotations: Array<Byte>? get() {
         if (!hasMethodAnnotations)
             return null
-        return arrays(methodAnnotationsAddr, false)
+        return arrays<Byte, Array<Byte>>(methodAnnotationsAddr, false)
     }
 
     val parameterAnnotationsAddr: Long get() {
@@ -52,7 +52,7 @@ class ConstMethod(address: Address) : Struct(address) {
     val parameterAnnotations: Array<Byte>? get() {
         if (!hasParameterAnnotations)
             return null
-        return arrays(parameterAnnotationsAddr, false)
+        return arrays<Byte, Array<Byte>>(parameterAnnotationsAddr, false)
     }
 
     val typeAnnotationsAddr: Long get() {
@@ -65,7 +65,7 @@ class ConstMethod(address: Address) : Struct(address) {
     val typeAnnotations: Array<Byte>? get() {
         if (!hasTypeAnnotations)
             return null
-        return arrays(typeAnnotationsAddr, false)
+        return arrays<Byte, Array<Byte>>(typeAnnotationsAddr, false)
     }
 
     val defaultAnnotationsAddr: Long get() {
@@ -79,7 +79,7 @@ class ConstMethod(address: Address) : Struct(address) {
     val defaultAnnotations: Array<Byte>? get() {
         if (!hasDefaultAnnotations)
             return null
-        return arrays(defaultAnnotationsAddr, false)
+        return arrays<Byte, Array<Byte>>(defaultAnnotationsAddr, false)
     }
 
     val lineNumberTableEntries: Int get() = TODO()
@@ -92,7 +92,7 @@ class ConstMethod(address: Address) : Struct(address) {
     val codeEnd: Long get() = codeBase + codeSize
 
     val compressedLineNumberTable: Array<Short> get() {
-        return arrays(address = address.base + codeEnd, isElementPointer = false)!!
+        return arrays<Short, Array<Short>>(address = address.base + codeEnd, isElementPointer = false)!!
     }
 
     val lastU2Element: Long get() {

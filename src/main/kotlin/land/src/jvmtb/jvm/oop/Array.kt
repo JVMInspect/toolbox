@@ -22,7 +22,7 @@ private fun <T : Any> VMScope.getTypeName(elementType: KClass<T>): String {
 
 class Array<T : Any>(private val elementType: KClass<T>, private val isElementPointer: Boolean, address: Address) : Struct(address), Iterable<T> {
     val length get() = unsafe.getInt(address.base)
-    private val elementBase get() = type.field("_data").offsetOrAddress
+    private val elementBase get() = type.field("_data[0]").offsetOrAddress
     private val elementSize get() = sizeOf(elementType)
 
     // write all content to byte array

@@ -38,24 +38,24 @@ open class NullableFieldImpl<V : Any>(
     isStruct: Boolean,
     isPointer: Boolean
 ) : BaseFieldImpl<V>(type, struct, fieldName, isOop, isStruct, isPointer) {
-    //operator fun setValue(thisRef: Struct, property: KProperty<*>, value: V) {
-    //    if (factory != null && machine.getAddress(fieldAddress) == 0L) {
-    //        return
-    //    }
-//
-    //    return factory?.invoke(this.type, machine.getAddress(fieldAddress)) as? Unit ?: when (this.type) {
-    //        Byte::class -> machine.putByte(fieldAddress, value as Byte)
-    //        Short::class -> machine.putShort(fieldAddress, value as Short)
-    //        Char::class -> machine.putChar(fieldAddress, value as Char)
-    //        Int::class -> machine.putInt(fieldAddress, value as Int)
-    //        Long::class -> machine.putLong(fieldAddress, value as Long)
-    //        Float::class -> machine.putFloat(fieldAddress, value as Float)
-    //        Double::class -> machine.putDouble(fieldAddress, value as Double)
-    //        // todo: check sizing
-    //        String::class -> machine.putMemory(fieldAddress, (value as String).toByteArray())
-    //        else -> error("${this.type.simpleName} setter is not supported")
-    //    }
-    //}
+    operator fun setValue(thisRef: Struct, property: KProperty<*>, value: V) {
+        if (factory != null && machine.getAddress(fieldAddress) == 0L) {
+            return
+        }
+
+        return factory?.invoke(this.type, machine.getAddress(fieldAddress)) as? Unit ?: when (this.type) {
+            Byte::class -> machine.putByte(fieldAddress, value as Byte)
+            Short::class -> machine.putShort(fieldAddress, value as Short)
+            Char::class -> machine.putChar(fieldAddress, value as Char)
+            Int::class -> machine.putInt(fieldAddress, value as Int)
+            Long::class -> machine.putLong(fieldAddress, value as Long)
+            Float::class -> machine.putFloat(fieldAddress, value as Float)
+            Double::class -> machine.putDouble(fieldAddress, value as Double)
+            // todo: check sizing
+            String::class -> machine.putMemory(fieldAddress, (value as String).toByteArray())
+            else -> error("${this.type.simpleName} setter is not supported")
+        }
+    }
 
     @Suppress("Unchecked_Cast")
     open operator fun getValue(thisRef: Struct, property: KProperty<*>): V? {
@@ -63,7 +63,11 @@ open class NullableFieldImpl<V : Any>(
             return null
         }
 
-        return factory?.invoke(this.type, machine.getAddress(fieldAddress)) as? V ?: when (this.type) {
+        if (factory != null) {
+            return factory.invoke(this.type, machine.getAddress(fieldAddress)) as? V
+        }
+
+        return when (this.type) {
             Byte::class -> machine.getByte(fieldAddress)
             Short::class -> machine.getShort(fieldAddress)
             Char::class -> machine.getChar(fieldAddress)

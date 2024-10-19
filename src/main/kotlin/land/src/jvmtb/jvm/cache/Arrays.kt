@@ -3,6 +3,7 @@ package land.src.jvmtb.jvm.cache
 import land.src.jvmtb.jvm.Address
 import land.src.jvmtb.jvm.VMScope
 import land.src.jvmtb.jvm.oop.Array
+import land.src.jvmtb.util.isStruct
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
 import kotlin.reflect.KClass
@@ -32,6 +33,17 @@ class Arrays(private val scope: VMScope) {
         }
 
         val factory = factories.computeIfAbsent(arrayType) { Factory(arrayType, elementType) }
-        return factory(Address(scope, address), isElementPointer) as? A
+        val elementName = if (elementType.isStruct) scope.structs.nameOf(elementType) else when (elementType) {
+            Byte::class -> "u1"
+            Short::class, Char::class -> "u2"
+            Int::class -> "int"
+            else -> error("No mapped element name for ${elementType.simpleName}")
+        }
+        val arrayType = scope.vm.type("Array<$elementName${if (isElementPointer) "*" else ""}>")
+        val array = factory(Address(scope, address), isElementPointer) as? A
+        (array as Array<E>).apply {
+            type = arrayType
+        }
+        return array
     }
 }

@@ -1,10 +1,8 @@
 package land.src.jvmtb
 
 import land.src.jvmtb.jvm.*
+import land.src.jvmtb.jvm.oop.*
 import land.src.jvmtb.jvm.oop.Array
-import land.src.jvmtb.jvm.oop.ClassLoaderDataGraph
-import land.src.jvmtb.jvm.oop.Klass
-import land.src.jvmtb.jvm.oop.Symbol
 import land.src.jvmtb.remote.impl.LinuxRemoteProcess
 import land.src.jvmtb.remote.impl.WindowsRemoteProcess
 
@@ -20,14 +18,10 @@ fun main() {
     val proc = remotes.first()
     proc.attach()
     val vm = VirtualMachine(proc)
-    val version: VMVersion = vm.structs()
+    val version: VMVersion = vm.structs()!!
     println(version)
-    val graph: ClassLoaderDataGraph = vm.structs()
+    val graph: ClassLoaderDataGraph = vm.structs()!!
     for (loadedClass in graph.getLoadedClasses()) {
-        for (i in loadedClass.secondarySupers) {
-            println(i.name)
-        }
-
         println(loadedClass.name.string)
         println(loadedClass.structs.sizeOf<Symbol>())
     }
@@ -37,10 +31,10 @@ fun main() {
 fun ClassLoaderDataGraph.getLoadedClasses(): List<Klass> {
     val result: MutableList<Klass> = ArrayList()
 
-    var cld = head
-    while (cld.address.base != 0L) {
-        var klass = cld.klasses
-        while (klass.address.base != 0L) {
+    var cld: ClassLoaderData? = head
+    while (cld != null) {
+        var klass: Klass? = cld.klasses
+        while (klass != null) {
             result.add(klass)
             klass = klass.nextLink
         }

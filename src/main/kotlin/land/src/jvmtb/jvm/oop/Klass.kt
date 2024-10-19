@@ -1,8 +1,6 @@
 package land.src.jvmtb.jvm.oop
 
-import land.src.jvmtb.dsl.array
-import land.src.jvmtb.dsl.oop
-import land.src.jvmtb.dsl.struct
+import land.src.jvmtb.dsl.*
 import land.src.jvmtb.jvm.Address
 import land.src.jvmtb.jvm.Struct
 
@@ -19,10 +17,10 @@ open class Klass(address: Address) : Struct(address) {
 
     // field Klass _secondary_supers Array<Klass*>* false 40 0x0
 
-    val secondarySupers: Array<Klass> by array("_secondary_supers")
+    val secondarySupers: Array<Klass>? by nullableArray("_secondary_supers")
 
     val name: Symbol by oop("_name")
-    val nextLink: Klass by struct("_next_link")
+    val nextLink: Klass? by nullableStruct("_next_link")
 
     val instanceKlass: InstanceKlass get() = InstanceKlass(address)
 }

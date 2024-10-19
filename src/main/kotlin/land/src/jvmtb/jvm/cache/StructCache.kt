@@ -49,7 +49,8 @@ class StructCache(private val scope: VMScope) : Factory {
 
     @Suppress("Parameter_Name_Changed_On_Override")
     override operator fun invoke(structType: KClass<*>, address: Long): Struct? {
-        if (scope.unsafe.getLong(address) == 0L) {
+        if (address == 0L) {
+            println("address is null!")
             return null
         }
 
