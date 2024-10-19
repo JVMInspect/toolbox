@@ -5,10 +5,20 @@ import land.src.jvmtb.jvm.oop.Array
 import land.src.jvmtb.jvm.oop.ClassLoaderDataGraph
 import land.src.jvmtb.jvm.oop.Klass
 import land.src.jvmtb.jvm.oop.Symbol
+import land.src.jvmtb.remote.impl.LinuxRemoteProcess
 import land.src.jvmtb.remote.impl.WindowsRemoteProcess
 
 fun main() {
-    val proc = WindowsRemoteProcess.getJavaProcesses().first()
+    val remotes = System.getProperty("os.name").let {
+        when {
+            it.contains("windows", ignoreCase = true) -> WindowsRemoteProcess.remotes
+            it.contains("linux", ignoreCase = true) -> LinuxRemoteProcess.remotes
+            else -> error("Unsupported OS: $it")
+        }
+    }
+
+    val proc = remotes.first()
+    proc.attach()
     val vm = VirtualMachine(proc)
     val version: VMVersion = vm.structs()
     println(version)
@@ -21,6 +31,7 @@ fun main() {
         println(loadedClass.name.string)
         println(loadedClass.structs.sizeOf<Symbol>())
     }
+    proc.detach()
 }
 
 fun ClassLoaderDataGraph.getLoadedClasses(): List<Klass> {

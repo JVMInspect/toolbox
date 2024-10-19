@@ -6,6 +6,9 @@ interface RemoteProcess {
     val pid: Int
     val unsafe: RemoteUnsafe
 
+    fun attach() = Unit
+    fun detach() = Unit
+
     fun is64Bit(): Boolean
 
     fun read(src: Pointer, dst: Pointer, size: Int): Int
