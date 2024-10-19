@@ -11,4 +11,6 @@ interface VMScope {
     val oops: OopCache
     val arrays: Arrays
     val structs: StructCache
+
+    val pointerSize: Long get() = if (vm.is64Bit()) 8 else 4
 }

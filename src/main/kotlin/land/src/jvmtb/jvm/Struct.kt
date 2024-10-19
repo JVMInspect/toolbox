@@ -17,4 +17,6 @@ abstract class Struct(val address: Address) : VMScope {
     override val oops: OopCache get() = address.scope.oops
     override val arrays: Arrays get() = address.scope.arrays
     override val structs: StructCache get() = address.scope.structs
+
+    fun sizeof(name: String) = vm.type(name).size
 }

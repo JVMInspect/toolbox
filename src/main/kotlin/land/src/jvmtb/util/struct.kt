@@ -10,6 +10,9 @@ val KClass<*>.isStruct get() =
 val KClass<*>.isImplementedStruct get() =
     isStruct && Struct::class != this
 
+val KClass<*>.structName get() =
+    simpleName
+
 fun VMScope.sizeOf(type: KClass<*>): Int {
     if (type.isStruct)
         return structs.sizeOf(type)

@@ -20,7 +20,7 @@ private fun <T : Any> VMScope.getTypeName(elementType: KClass<T>): String {
     }
 }
 
-class Array<T : Any>(private val elementType: KClass<T>, address: Address) : Struct(address), Iterable<T> {
+class Array<T : Any>(private val elementType: KClass<T>, private val isElementPointer: Boolean, address: Address) : Struct(address), Iterable<T> {
     val length get() = unsafe.getInt(address.base)
     private val elementBase get() = type.field("_data").offsetOrAddress
     private val elementSize get() = sizeOf(elementType)
@@ -32,7 +32,9 @@ class Array<T : Any>(private val elementType: KClass<T>, address: Address) : Str
 
     @Suppress("Unchecked_Cast")
     operator fun get(index: Int): T {
-        val elementAddress = address.base + elementBase + index.toLong() * elementSize
+        val element = address.base + elementBase + index.toLong() * elementSize
+        val elementAddress = if (isElementPointer) unsafe.getLong(element) else element
+
         if (elementType.isStruct)
             return address.scope.structs(elementType, elementAddress) as T
 
