@@ -1,6 +1,7 @@
 package land.src.jvmtb.jvm
 
 import com.sun.jna.Pointer
+import land.src.jvmtb.jvm.cache.Arrays
 import land.src.jvmtb.jvm.cache.OopCache
 import land.src.jvmtb.jvm.cache.StructCache
 import land.src.jvmtb.remote.RemoteProcess
@@ -14,6 +15,7 @@ class VirtualMachine(private val process: RemoteProcess) : VMScope {
     override val vm = this
     override val unsafe = process.unsafe
     override val oops = OopCache(this)
+    override val arrays = Arrays(this)
     override val structs = StructCache(this)
 
     init {

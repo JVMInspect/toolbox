@@ -1,8 +1,10 @@
 package land.src.jvmtb
 
 import land.src.jvmtb.jvm.*
+import land.src.jvmtb.jvm.oop.Array
 import land.src.jvmtb.jvm.oop.ClassLoaderDataGraph
 import land.src.jvmtb.jvm.oop.Klass
+import land.src.jvmtb.jvm.oop.Symbol
 import land.src.jvmtb.remote.impl.WindowsRemoteProcess
 
 fun main() {
@@ -12,7 +14,12 @@ fun main() {
     println(version)
     val graph: ClassLoaderDataGraph = vm.structs()
     for (loadedClass in graph.getLoadedClasses()) {
+        for (i in loadedClass.secondarySupers) {
+            println(i.name)
+        }
+
         println(loadedClass.name.string)
+        println(loadedClass.structs.sizeOf<Symbol>())
     }
 }
 

@@ -4,7 +4,7 @@ import land.src.jvmtb.dsl.int
 import land.src.jvmtb.dsl.string
 
 class VMVersion(address: Address) : Struct(address) {
-    override val type = "Abstract_VM_Version"
+    override val typeName = "Abstract_VM_Version"
 
     var major by int("_vm_major_version")
     var minor by int("_vm_minor_version")
