@@ -16,7 +16,7 @@ class InstanceKlass(address: Address) : Klass(address) {
     val permittedSubclasses: Array<Short> by lazy {
         val nestHostAddress = type.field("_nest_members").offsetOrAddress + pointerSize
         val permittedSubclassesAddress = nestHostAddress + pointerSize
-        arrays<Short, Array<Short>>(permittedSubclassesAddress, false)!!
+        arrays(permittedSubclassesAddress, false)
     }
 
     val recordComponents: Array<Short>? by lazy {
@@ -25,7 +25,7 @@ class InstanceKlass(address: Address) : Klass(address) {
         val recordComponentsAddress = permittedSubclassesAddress + pointerSize
         if (unsafe.getAddress(recordComponentsAddress) == 0L)
             return@lazy null
-        arrays<Short, Array<Short>>(recordComponentsAddress, false)
+        arrays(recordComponentsAddress, false)
     }
 
     val genericSignature: Symbol get() = TODO()

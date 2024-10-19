@@ -2,10 +2,19 @@ package land.src.jvmtb.util
 
 import land.src.jvmtb.jvm.Struct
 import land.src.jvmtb.jvm.VMScope
+import land.src.jvmtb.jvm.oop.Array
+import land.src.jvmtb.jvm.oop.Oop
 import kotlin.reflect.KClass
 
 val KClass<*>.isStruct get() =
     Struct::class.java.isAssignableFrom(java)
+
+val KClass<*>.isArray get() =
+    Array::class.java.isAssignableFrom(java)
+
+val KClass<*>.isOop get() =
+    Oop::class.java.isAssignableFrom(java)
+
 
 val KClass<*>.isImplementedStruct get() =
     isStruct && Struct::class != this

@@ -6,11 +6,11 @@ import land.src.jvmtb.util.isStruct
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 
-abstract class BaseArrayField<E : Any, A : Array<E>?>(
+abstract class BaseArrayField<E : Any>(
     struct: Struct,
     fieldName: String,
-    val arrayType: KClass<*>,
-    val elementType: KClass<*>,
+    val arrayType: KClass<out Array<E>>,
+    val elementType: KClass<E>,
     isPointer: Boolean,
     val isElementPointer: Boolean
 ) {
@@ -24,32 +24,33 @@ abstract class BaseArrayField<E : Any, A : Array<E>?>(
     }
 }
 
-open class NullableArrayField<E : Any, A : Array<E>?>(
+open class NullableArrayField<E : Any>(
     struct: Struct,
     fieldName: String,
-    arrayType: KClass<*>,
-    elementType: KClass<*>,
+    arrayType: KClass<out Array<E>>,
+    elementType: KClass<E>,
     isPointer: Boolean,
     isElementPointer: Boolean
-) : BaseArrayField<E, A>(struct, fieldName, arrayType, elementType, isPointer, isElementPointer) {
+) : BaseArrayField<E>(struct, fieldName, arrayType, elementType, isPointer, isElementPointer) {
+
     @Suppress("Unchecked_Cast")
-    open operator fun getValue(thisRef: Struct, property: KProperty<*>): A? {
+    open operator fun getValue(thisRef: Struct, property: KProperty<*>): Array<E>? {
         if (fieldAddress == 0L) {
             return null
         }
-        return machine.arrays(elementType, arrayType, isElementPointer, fieldAddress) as? A
+        return machine.arrays(elementType, arrayType, isElementPointer, fieldAddress)
     }
 }
 
-class ArrayField<E : Any, A : Array<E>>(
+class ArrayField<E : Any>(
     struct: Struct,
     fieldName: String,
-    arrayType: KClass<*>,
-    elementType: KClass<*>,
+    arrayType: KClass<out Array<E>>,
+    elementType: KClass<E>,
     isPointer: Boolean,
     isElementPointer: Boolean
-) : NullableArrayField<E, A>(struct, fieldName, arrayType, elementType, isPointer, isElementPointer) {
-    override operator fun getValue(thisRef: Struct, property: KProperty<*>): A =
+) : NullableArrayField<E>(struct, fieldName, arrayType, elementType, isPointer, isElementPointer) {
+    override operator fun getValue(thisRef: Struct, property: KProperty<*>): Array<E> =
         super.getValue(thisRef, property) ?: error("Null pointer")
 }
 
@@ -57,7 +58,7 @@ inline fun <reified E : Any, reified A : Array<E>> Struct.array(
     fieldName: String,
     isPointer: Boolean = false,
     isElementPointer: Boolean = A::class.isStruct
-) = ArrayField<E, A>(
+) = ArrayField(
     struct = this,
     fieldName = fieldName,
     arrayType = A::class,
@@ -66,11 +67,11 @@ inline fun <reified E : Any, reified A : Array<E>> Struct.array(
     isElementPointer = isElementPointer
 )
 
-inline fun <reified E : Any, reified A : Array<E>?> Struct.nullableArray(
+inline fun <reified E : Any, reified A : Array<E>> Struct.nullableArray(
     fieldName: String,
     isPointer: Boolean = false,
     isElementPointer: Boolean = A::class.isStruct
-) = NullableArrayField<E, A>(
+) = NullableArrayField(
     struct = this,
     fieldName = fieldName,
     arrayType = A::class,

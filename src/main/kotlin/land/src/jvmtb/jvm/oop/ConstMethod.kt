@@ -40,7 +40,7 @@ class ConstMethod(address: Address) : Struct(address) {
     val methodAnnotations: Array<Byte>? get() {
         if (!hasMethodAnnotations)
             return null
-        return arrays<Byte, Array<Byte>>(methodAnnotationsAddr, false)
+        return arrays(methodAnnotationsAddr, false)
     }
 
     val parameterAnnotationsAddr: Long get() {
@@ -52,7 +52,7 @@ class ConstMethod(address: Address) : Struct(address) {
     val parameterAnnotations: Array<Byte>? get() {
         if (!hasParameterAnnotations)
             return null
-        return arrays<Byte, Array<Byte>>(parameterAnnotationsAddr, false)
+        return arrays(parameterAnnotationsAddr, false)
     }
 
     val typeAnnotationsAddr: Long get() {
@@ -65,7 +65,7 @@ class ConstMethod(address: Address) : Struct(address) {
     val typeAnnotations: Array<Byte>? get() {
         if (!hasTypeAnnotations)
             return null
-        return arrays<Byte, Array<Byte>>(typeAnnotationsAddr, false)
+        return arrays(typeAnnotationsAddr, false)
     }
 
     val defaultAnnotationsAddr: Long get() {
@@ -79,7 +79,7 @@ class ConstMethod(address: Address) : Struct(address) {
     val defaultAnnotations: Array<Byte>? get() {
         if (!hasDefaultAnnotations)
             return null
-        return arrays<Byte, Array<Byte>>(defaultAnnotationsAddr, false)
+        return arrays(defaultAnnotationsAddr, false)
     }
 
     val lineNumberTableEntries: Int get() = TODO()
