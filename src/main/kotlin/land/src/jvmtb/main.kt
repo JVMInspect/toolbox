@@ -18,9 +18,9 @@ fun main() {
     val proc = remotes.first()
     proc.attach()
     val vm = VirtualMachine(proc)
-    val version: VMVersion = vm.structs()!!
+    val version: VMVersion = vm.structs()
     println(version)
-    val graph: ClassLoaderDataGraph = vm.structs()!!
+    val graph: ClassLoaderDataGraph = vm.structs()
     for (loadedClass in graph.getLoadedClasses()) {
         println(loadedClass.name.string)
         val supers = loadedClass.secondarySupers

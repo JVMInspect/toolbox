@@ -1,14 +1,15 @@
 package land.src.jvmtb.dsl
 
+import land.src.jvmtb.jvm.Field
 import land.src.jvmtb.jvm.Struct
-import land.src.jvmtb.jvm.oop.Array
 import land.src.jvmtb.jvm.oop.Oop
-import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 
 val Struct.mappedTypeName get() =
     typeName ?: this::class.simpleName ?: error("Struct ${this::class.java.name} does not have a type name.")
+
+private val Fields = mutableMapOf<String, Field>()
 
 abstract class BaseFieldImpl<V : Any?>(
     protected val type: KClass<*>,
@@ -22,9 +23,16 @@ abstract class BaseFieldImpl<V : Any?>(
     protected val factory = if (isOop) machine.oops else if (isStruct) machine.structs else null
 
     protected val fieldAddress: Long by lazy {
+        val key = "${type.simpleName}::$fieldName"
+        val field = if (Fields.containsKey(key)) {
+            Fields[key]!!
+        } else {
+            val type = struct.vm.type(struct.mappedTypeName)
+            val field = type.field(fieldName)
+            Fields[key] = field
+            field
+        }
         val base = struct.address.base
-        val type = machine.type(struct.mappedTypeName)
-        val field = type.field(fieldName)
         val address = if (field.isStatic) field.offsetOrAddress else base + field.offsetOrAddress
         if (!isPointer) address else machine.getAddress(address)
     }
@@ -61,8 +69,13 @@ open class NullableFieldImpl<V : Any>(
         if (fieldAddress == 0L)
             return null
 
-        if (factory != null)
-            return factory.invoke(this.type, machine.getAddress(fieldAddress)) as? V
+        if (factory != null) {
+            val address = machine.getAddress(fieldAddress)
+            if (address == 0L)
+                return null
+
+            return factory.invoke(this.type, address) as? V
+        }
 
         return when (this.type) {
             Byte::class -> machine.getByte(fieldAddress)

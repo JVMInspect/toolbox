@@ -7,58 +7,57 @@ import land.src.jvmtb.util.ClassConstants.JVM_RECOGNIZED_CLASS_MODIFIERS
 import land.src.jvmtb.util.ClassConstants.JVM_RECOGNIZED_METHOD_MODIFIERS
 import java.io.DataOutputStream
 
-class KlassDumper(val scope: VMScope, val klass: Klass, val buf: DataOutputStream)
+class KlassDumper(
+    val scope: VMScope,
+    val klass: Klass,
+    val buf: DataOutputStream
+) {
+    val ik = klass.instanceKlass
+    val pool = ik.constantPool
+}
 
 fun KlassDumper.writeClassFileFormat() {
     buf.writeInt(0xCAFEBABE.toInt())
-    val ik = klass.instanceKlass
     buf.writeShort(ik.majorVersion.toInt())
     buf.writeShort(ik.minorVersion.toInt())
 
-    // write_u2(checked_cast<u2>(cpool()->length()));
-    // copy_cpool_bytes(writeable_address(cpool_size()));
-
+    buf.writeShort(pool.length)
+    buf.write(pool.bytes)
 
     buf.writeShort(ik.accessFlags and JVM_RECOGNIZED_CLASS_MODIFIERS.toInt())
-    // write_u2(class_symbol_to_cpool_index(ik()->name()));
-
-    /*
-      write_u2(class_symbol_to_cpool_index(ik()->name()));
-  Klass* super_class = ik()->super();
-  write_u2(super_class == nullptr? 0 :  // zero for java.lang.Object
-                class_symbol_to_cpool_index(super_class->name()));
-     */
+    buf.writeShort(pool.getClassSymbolIndex(ik.name.string))
+    val superIndex = if (ik.superClass == null) 0 else pool.getClassSymbolIndex(ik.superClass!!.name.string)
+    buf.writeShort(superIndex )
 
     val interfaces = ik.localInterfaces
     val numInterfaces = interfaces!!.length
     buf.writeShort(numInterfaces)
     for (index in 0 until numInterfaces) {
         val iik = interfaces[index]
-        //write_u2(class_symbol_to_cpool_index(iik->name()));
+        buf.writeShort(pool.getClassSymbolIndex(iik.name.string))
     }
 
     writeFieldInfos()
-
     writeMethodInfos()
-
     writeClassAttributes()
 }
 
 fun KlassDumper.writeFieldInfos() {
+    val fieldsAnnotations = ik.fieldsAnnotations
+    val fieldsTypeAnnotations = ik.fieldsTypeAnnotations
+    val fieldsCount = ik.javaFieldsCount
 
+    buf.writeShort(fieldsCount.toInt())
+    for (i in 0 until fieldsCount.toInt()) {
+
+    }
 }
 
 fun KlassDumper.writeAttributeNameIndex(name: String) {
     // todo
 }
 
-//u2 JvmtiClassFileReconstituter::inner_classes_attribute_length() {
-//    InnerClassesIterator iter(ik());
-//    return iter.length();
-//}
-
 fun KlassDumper.writeClassAttributes() {
-    val ik = klass.instanceKlass
     val innerClasses = InnerClassesIterator(scope, ik)
     val genericSignature = ik.genericSignature
     val annotations = ik.annotations
@@ -138,41 +137,131 @@ fun KlassDumper.writeClassAttributes() {
 }
 
 fun KlassDumper.writeSourceFileAttribute() {
-
+    writeAttributeNameIndex("SourceFile")
+    buf.writeInt(2)
+    buf.writeShort(pool.getUtf8SymbolIndex(ik.sourceFileName!!.string))
 }
 
 fun KlassDumper.writeSourceDebugExtensionAttribute() {
-
+    writeAttributeNameIndex("SourceDebugExtension")
+    val length = ik.sourceDebugExtension!!.length
+    buf.writeInt(length)
+    buf.write(ik.sourceDebugExtension!!.toByteArray())
 }
 
 fun KlassDumper.writeInnerClassesAttribute(iterator: InnerClassesIterator) {
-
+    val entryCount = iterator.length
+    val size = 2 + entryCount * (2 + 2 + 2 + 2)
+    writeAttributeNameIndex("InnerClasses")
+    buf.writeInt(size)
+    buf.writeShort(entryCount)
+    for (info in iterator) {
+        buf.writeShort(info.classInfo.toInt())
+        buf.writeShort(info.outerClassInfo.toInt())
+        buf.writeShort(info.innerName.toInt())
+        buf.writeShort(info.accessFlags.toInt())
+    }
 }
 
 fun KlassDumper.writeNestHostAttribute() {
-
+    writeAttributeNameIndex("NestHost")
+    buf.writeInt(2)
+    buf.writeShort(ik.nestHostIndex.toInt())
 }
 
 fun KlassDumper.writeNestMembersAttribute() {
+    val nestMembers = ik.nestMembers
+    val numberOfClasses = nestMembers.length
+    val length = 2 * (1 + numberOfClasses)
 
+    writeAttributeNameIndex("NestMembers")
+    buf.writeInt(length)
+    buf.writeShort(numberOfClasses)
+    for (index in 0 until numberOfClasses) {
+        val classIndex = nestMembers[index]
+        buf.writeShort(classIndex.toInt())
+    }
 }
 
 fun KlassDumper.writePermittedSubclassesAttribute() {
+    val permittedSubclasses = ik.permittedSubclasses
+    val numberOfClasses = permittedSubclasses.length
+    val length = 2 * (1 + numberOfClasses)
 
+    writeAttributeNameIndex("PermittedSubclasses")
+    buf.writeInt(length)
+    buf.writeShort(numberOfClasses)
+    for (index in 0 until numberOfClasses) {
+        val classIndex = permittedSubclasses[index]
+        buf.writeShort(classIndex.toInt())
+    }
 }
 
 fun KlassDumper.writeRecordAttribute() {
+    val components = ik.recordComponents
+    val numberOfComponents = components!!.length
 
+    var length = 2 + (2 * 3 * numberOfComponents)
+    for (index in 0 until numberOfComponents) {
+        val component = components[index]
+        if (component.genericSignatureIndex != 0.toShort()) {
+            length += 8
+        }
+        if (component.annotations != null) {
+            length += 6 + component.annotations!!.length
+        }
+        if (component.typeAnnotations != null) {
+            length += 6 + component.typeAnnotations!!.length
+        }
+    }
+
+    writeAttributeNameIndex("Record")
+    buf.writeInt(length)
+    buf.writeShort(numberOfComponents)
+    for (index in 0 until numberOfComponents) {
+        val component = components[index]
+        buf.writeShort(component.nameIndex.toInt())
+        buf.writeShort(component.descriptorIndex.toInt())
+        buf.writeShort(component.attributesCount.toInt())
+        if (component.genericSignatureIndex != 0.toShort()) {
+            writeSignatureAttribute(component.genericSignatureIndex.toInt())
+        }
+        if (component.annotations != null) {
+            writeAnnotationsAttribute("RuntimeVisibleAnnotations", component.annotations!!)
+        }
+        if (component.typeAnnotations != null) {
+            writeAnnotationsAttribute("RuntimeVisibleTypeAnnotations", component.typeAnnotations!!)
+        }
+    }
 }
 
 fun KlassDumper.writeBootstrapMethodAttribute() {
-
+    val operands = ik.constantPool.operands!!
+    writeAttributeNameIndex("BootstrapMethods")
+    val numBootstrapMethods = operands.length
+    var length = Short.SIZE_BYTES
+    for (index in 0 until numBootstrapMethods) {
+        val numBootstrapArguments = 0 // TODO cpool()->operand_argument_count_at(n);
+        length += 2 + 2 + (2 * numBootstrapArguments)
+    }
+    buf.writeInt(length)
+    buf.writeShort(numBootstrapMethods)
+    for (index in 0 until numBootstrapMethods) {
+        val bootstrapMethodRef = 0 // TODO cpool()->operand_bootstrap_method_ref_index_at(n);
+        val numBootstrapArguments = 0 // TODO cpool()->operand_argument_count_at(n);
+        buf.writeShort(bootstrapMethodRef)
+        buf.writeShort(numBootstrapArguments)
+        for (argIndex in 0 until numBootstrapArguments) {
+            val bootstrapArgument = 0 // TODO cpool()->operand_argument_index_at(n, arg);
+            buf.writeShort(bootstrapArgument)
+        }
+    }
 }
 
 fun KlassDumper.writeMethodInfo(method: Method) {
     if (method.constMethod.isOverpass) return
 
-    val accessFlags = method.accessFlags
+    val accessFlags = method.accessFlags.toInt()
     val constMethod = method.constMethod
     val genericSignatureIndex = constMethod.genericSignatureIndex.toInt()
     val annotations = method.constMethod.methodAnnotations
@@ -180,7 +269,7 @@ fun KlassDumper.writeMethodInfo(method: Method) {
     val defaultAnnotations = method.constMethod.defaultAnnotations
     val typeAnnotations = method.constMethod.typeAnnotations
 
-    buf.writeShort(accessFlags.flags and JVM_RECOGNIZED_METHOD_MODIFIERS.toInt())
+    buf.writeShort(accessFlags and JVM_RECOGNIZED_METHOD_MODIFIERS.toInt())
     buf.writeShort(constMethod.nameIndex.toInt())
     buf.writeShort(constMethod.signatureIndex.toInt())
 
@@ -253,7 +342,7 @@ fun KlassDumper.writeExceptionsAttribute(method: ConstMethod) {
     val start = method.checkedExceptionsStart
     for (index in 0 until checkedExceptionsLength) {
         val address = start + (index * scope.pointerSize)
-        val element = scope.structs<CheckedExceptionElement>(address)!!
+        val element = scope.structs<CheckedExceptionElement>(address)
         buf.writeShort(element.classCpIndex.toInt())
     }
 }
@@ -268,7 +357,7 @@ fun KlassDumper.writeMethodParameterAttribute(method: ConstMethod) {
     val start = method.methodParametersStart
     for (index in 0 until length) {
         val address = start + (index * scope.pointerSize)
-        val element = scope.structs<MethodParametersElement>(address)!!
+        val element = scope.structs<MethodParametersElement>(address)
         buf.writeShort(element.nameCpIndex.toInt())
         buf.writeShort(element.flags.toInt())
     }
@@ -311,7 +400,6 @@ fun KlassDumper.writeMethodInfos() {
     }
 }
 
-// todo port CompressedLineNumberReadStream
 fun KlassDumper.writeLineNumberTableAttribute(method: Method, lineNumberCount: Int) {
     writeAttributeNameIndex("LineNumberTable")
     buf.writeInt(2 + lineNumberCount * (2 + 2))
@@ -366,7 +454,7 @@ fun KlassDumper.writeCodeAttribute(method: Method) {
         val start = method.constMethod.localVariableTableStart
         for (index in 0 until localVariableTableLength) {
             val address = start + (index * scope.pointerSize)
-            val element = scope.structs<LocalVariableTableElement>(address)!!
+            val element = scope.structs<LocalVariableTableElement>(address)
             if (element.signatureCpIndex != 0.toShort()) {
                 localVariableTypeTableLength++
             }
@@ -385,8 +473,8 @@ fun KlassDumper.writeCodeAttribute(method: Method) {
 
     writeAttributeNameIndex("Code")
     buf.writeInt(size)
-    buf.writeShort(method.maxStack)
-    buf.writeShort(method.maxLocals)
+    buf.writeShort(method.maxStack.toInt())
+    buf.writeShort(method.maxLocals.toInt())
 
     buf.writeInt(codeSize.toInt())
     copyBytecode(method)
@@ -395,7 +483,7 @@ fun KlassDumper.writeCodeAttribute(method: Method) {
     val start = method.constMethod.exceptionTableStart
     for (index in 0 until exceptionTableLength) {
         val addr = start + (index * scope.pointerSize)
-        val element = scope.structs<ExceptionTableElement>(addr)!!
+        val element = scope.structs<ExceptionTableElement>(addr)
         buf.writeShort(element.startPc.toInt())
         buf.writeShort(element.endPc.toInt())
         buf.writeShort(element.handlerPc.toInt())
@@ -425,7 +513,7 @@ fun KlassDumper.writeLocalVariableTypeTableAttribute(method: Method, localVariab
     val start = method.constMethod.localVariableTableStart
     for (index in 0 until method.constMethod.localVariableTableLength) {
         val address = start + (index * scope.pointerSize)
-        val element = scope.structs<LocalVariableTableElement>(address)!!
+        val element = scope.structs<LocalVariableTableElement>(address)
         if (element.signatureCpIndex > 0.toShort()) {
             buf.writeShort(element.startBci.toInt())
             buf.writeShort(element.length.toInt())
@@ -444,7 +532,7 @@ fun KlassDumper.writeLocalVariableTableAttribute(method: Method, localVariableTa
     val start = method.constMethod.localVariableTableStart
     for (index in 0 until localVariableTableLength) {
         val address = start + (index * scope.pointerSize)
-        val element = scope.structs<LocalVariableTableElement>(address)!!
+        val element = scope.structs<LocalVariableTableElement>(address)
         buf.writeShort(element.startBci.toInt())
         buf.writeShort(element.length.toInt())
         buf.writeShort(element.nameCpIndex.toInt())

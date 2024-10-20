@@ -7,8 +7,8 @@ import kotlin.reflect.KClass
 class OopCache(private val scope: VMScope) : Factory {
     private val map = mutableMapOf<Long, Oop?>()
 
-    inline operator fun <reified O : Oop> invoke(address: Long): O? =
-        invoke(O::class, address) as? O?
+    inline operator fun <reified O : Oop> invoke(address: Long): O =
+        invoke(O::class, address) as O
 
     override operator fun invoke(type: KClass<*>, address: Long): Oop? {
         val containsAddress = map.contains(address)
@@ -17,6 +17,12 @@ class OopCache(private val scope: VMScope) : Factory {
             map[address] = value
             return value
         }
-        return map.computeIfAbsent(address) { scope.structs(type, address) as? Oop? }
+        else if (containsAddress) {
+            return map[address]
+        }
+
+        val value = scope.structs(type, address) as? Oop?
+        map[address] = value
+        return value
     }
 }

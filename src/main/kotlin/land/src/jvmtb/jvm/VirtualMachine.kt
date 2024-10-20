@@ -117,9 +117,6 @@ class VirtualMachine(private val process: RemoteProcess) : VMScope {
     fun constant(name: String) = constants[name]
         ?: throw NoSuchElementException("No such constant: $name")
 
-    fun intConstant(name: String) = constant(name).toInt()
-    fun longConstant(name: String) = constant(name).toLong()
-
     fun getString(address: Long) = process.unsafe.getString(address)
     fun getStringRef(address: Long) = getString(getAddress(address))
 

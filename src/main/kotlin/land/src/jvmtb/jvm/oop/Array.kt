@@ -13,6 +13,10 @@ class Array<E : Any>(private val elementType: KClass<E>, private val isElementPo
     val elementBase get() = type.field("_data[0]").offsetOrAddress
     val elementSize get() = if (isElementPointer) 8 else sizeOf(elementType)
 
+    fun getAddress(index: Int): Long {
+        return unsafe.getAddress(elementBase + index.toLong() * elementSize)
+    }
+
     @Suppress("Unchecked_Cast")
     @OptIn(ExperimentalStdlibApi::class)
     operator fun get(index: Int): E {

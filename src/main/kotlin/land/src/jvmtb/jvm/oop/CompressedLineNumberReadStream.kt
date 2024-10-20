@@ -5,6 +5,7 @@ class LineNumberPair(
     val bci: Short
 )
 
+// todo port CompressedLineNumberReadStream
 class CompressedLineNumberReadStream(array: Array<Short>) : Iterator<LineNumberPair> {
     override fun hasNext(): Boolean {
         TODO("Not yet implemented")

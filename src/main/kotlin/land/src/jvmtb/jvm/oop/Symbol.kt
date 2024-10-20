@@ -10,13 +10,9 @@ class Symbol(address: Address) : Oop(address) {
     private val _body by offset("_body")
     private val _length by short("_length")
 
-    val length: Int get() =
-        _length.toInt() and 0xffff
-
-    val bytes: ByteArray get() =
-        address.scope.unsafe.getMemory(address.base + _body, length)
-
-    val string: String get() = readModifiedUTF8(bytes)
+    val length = _length.toInt() and 0xffff
+    val bytes = address.scope.unsafe.getMemory(address.base + _body, length)
+    val string = readModifiedUTF8(bytes)
 
     private fun readModifiedUTF8(buf: ByteArray): String {
         val len = buf.size

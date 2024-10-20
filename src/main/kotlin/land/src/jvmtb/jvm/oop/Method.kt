@@ -1,17 +1,13 @@
 package land.src.jvmtb.jvm.oop
 
+import land.src.jvmtb.dsl.short
+import land.src.jvmtb.dsl.struct
 import land.src.jvmtb.jvm.Address
 import land.src.jvmtb.jvm.Struct
 
 class Method(address: Address) : Struct(address) {
-    //val annotations: Array<Annotation>? get() = TODO()
-    //val parameterAnnotations: Array<Annotation>? get() = TODO()
-    //val defaultAnnotations: Array<Byte>? by nulla
-    //val typeAnnotations: Array<Annotation>? get() = TODO()
-    val maxStack: Int get() = TODO()
-    val maxLocals: Int get() = TODO()
-    val accessFlags: AccessFlags get() = TODO()
-    val constMethod: ConstMethod get() = TODO()
-
-    val isOverpass: Boolean get() = TODO()
+    val maxStack: Short get() = constMethod.maxStack
+    val maxLocals: Short get() = constMethod.maxLocals
+    val accessFlags: Short by short("_access_flags")
+    val constMethod: ConstMethod by struct("_constMethod")
 }

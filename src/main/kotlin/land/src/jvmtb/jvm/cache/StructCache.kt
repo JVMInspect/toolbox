@@ -44,15 +44,11 @@ class StructCache(private val scope: VMScope) : Factory {
     fun sizeOf(type: KClass<*>): Int =
         sizes[type] ?: error("${type.simpleName} has not yet been built.")
 
-    inline operator fun <reified S : Struct> invoke(address: Long = -1): S? =
-        invoke(S::class, address) as? S
+    inline operator fun <reified S : Struct> invoke(address: Long = -1): S =
+        invoke(S::class, address) as S
 
     @Suppress("Parameter_Name_Changed_On_Override")
-    override operator fun invoke(structType: KClass<*>, address: Long): Struct? {
-        if (address == 0L) {
-            return null
-        }
-
+    override operator fun invoke(structType: KClass<*>, address: Long): Struct {
         val factory = factories.computeIfAbsent(structType) { Factory(structType) }
         val struct = factory(Address(scope, address)) as Struct
         val name = names.computeIfAbsent(structType) { struct.mappedTypeName }

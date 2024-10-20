@@ -1,11 +1,14 @@
 package land.src.jvmtb.dsl
 
+import land.src.jvmtb.jvm.Field
 import land.src.jvmtb.jvm.Struct
 import land.src.jvmtb.jvm.oop.Array
 import land.src.jvmtb.util.isArray
 import land.src.jvmtb.util.isStruct
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
+
+private val Fields = mutableMapOf<String, Field>()
 
 abstract class BaseArrayField<E : Any>(
     struct: Struct,
@@ -17,9 +20,16 @@ abstract class BaseArrayField<E : Any>(
 ) {
     protected val machine = struct.address.scope.vm
     protected val fieldAddress: Long by lazy {
+        val key = "${struct::class.simpleName}::$fieldName"
+        val field = if (Fields.containsKey(key)) {
+            Fields[key]!!
+        } else {
+            val type = struct.vm.type(struct.mappedTypeName)
+            val field = type.field(fieldName)
+            Fields[key] = field
+            field
+        }
         val base = struct.address.base
-        val type = machine.type(struct.mappedTypeName)
-        val field = type.field(fieldName)
         val address = if (field.isStatic) field.offsetOrAddress else base + field.offsetOrAddress
         if (!isPointer) address else machine.getAddress(address)
     }
