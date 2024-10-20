@@ -3,6 +3,7 @@ package land.src.jvmtb.jvm.oop
 import land.src.jvmtb.dsl.int
 import land.src.jvmtb.dsl.nullableArray
 import land.src.jvmtb.dsl.short
+import land.src.jvmtb.dsl.struct
 import land.src.jvmtb.jvm.Address
 import land.src.jvmtb.jvm.Struct
 
@@ -12,6 +13,8 @@ class ConstMethod(address: Address) : Struct(address) {
 
     val stackMapData: Array<Byte>? by nullableArray("_stackmap_data")
     val hasStackMapTable: Boolean get() = stackMapData != null
+
+    val constants: ConstantPool by struct("_constants")
 
     val nameIndex: Short by short("_name_index")
     val signatureIndex: Short by short("_signature_index")

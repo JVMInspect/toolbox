@@ -2,14 +2,15 @@ package land.src.jvmtb.jvm.oop
 
 import land.src.jvmtb.dsl.*
 import land.src.jvmtb.jvm.Address
+import land.src.jvmtb.util.ClassConstants.JVM_ACC_FIELD_HAS_GENERIC_SIGNATURE
+import land.src.jvmtb.util.ClassConstants.JVM_ACC_FIELD_INTERNAL
 
 class InstanceKlass(address: Address) : Klass(address) {
     val majorVersion: Short get() = constantPool.majorVersion
     val minorVersion: Short get() = constantPool.minorVersion
-    val constantPool: ConstantPool by struct("_constant_pool")
+    val constantPool: ConstantPool by struct("_constants")
 
     val superClass: Klass? by nullableStruct("_super")
-    val accessFlags: Int by int("_access_flags")
     val nestHostIndex: Short by short("_nest_host_index")
     val nestMembers: Array<Short> by array("_nest_members")
 
@@ -52,7 +53,34 @@ class InstanceKlass(address: Address) : Klass(address) {
     val localInterfaces: Array<InstanceKlass>? by nullableArray("_local_interfaces")
 
     val methods: Array<Method> by array("_methods")
-    val _fields: Array<Short> by array("_fields")
+    val fields: Array<Short> by array("_fields")
+    val javaFieldsCount: Short by short("_java_fields_count")
     val methodOrdering: Array<Int> by array("_method_ordering")
+
+    val fieldInfos: List<FieldInfo> by lazy {
+        var length = fields.length
+        val fields: MutableList<FieldInfo> = mutableListOf()
+
+        val base = this.fields.address.base
+        var index = 0
+        while (index < length) {
+            val fieldAddress = Address(address.scope, base + (index * 6))
+            val field = FieldInfo(fieldAddress)
+
+            if ((field.accessFlags.toInt() and JVM_ACC_FIELD_HAS_GENERIC_SIGNATURE) != 0) {
+                length--
+            }
+
+            fields.add(field)
+
+            index++
+        }
+
+        fields
+    }
+
+    val javaFieldInfos: List<FieldInfo> by lazy {
+        fieldInfos.filter { it.accessFlags.toInt() and JVM_ACC_FIELD_INTERNAL == 0 }
+    }
 }
 
