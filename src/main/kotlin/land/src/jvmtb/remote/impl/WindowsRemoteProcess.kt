@@ -96,6 +96,9 @@ class WindowsRemoteProcess(private val handle: HANDLE) : RemoteProcess, AutoClos
         override val remotes: Set<RemoteProcess>
             get() = getJavaProcesses()
 
+        val current: RemoteProcess
+            get() = WindowsRemoteProcess(kernel32.GetCurrentProcess())
+
         private fun getActiveProcessIds(): IntArray {
             var size = 0
             var processes: IntArray

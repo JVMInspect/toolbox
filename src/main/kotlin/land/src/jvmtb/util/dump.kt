@@ -1,5 +1,6 @@
 package land.src.jvmtb.util
 
+import land.src.jvmtb.jvm.Address
 import land.src.jvmtb.jvm.VMScope
 import land.src.jvmtb.jvm.oop.*
 import land.src.jvmtb.jvm.oop.Array
@@ -45,26 +46,48 @@ fun KlassDumper.writeClassFileFormat() {
 fun KlassDumper.writeFieldInfos() {
     val fieldsAnnotations = ik.fieldsAnnotations
     val fieldsTypeAnnotations = ik.fieldsTypeAnnotations
-    val fieldsCount = ik.javaFieldsCount
+    val fields = ik._fields
 
-    buf.writeShort(fieldsCount.toInt())
-    for (i in 0 until fieldsCount.toInt()) {
+    var fieldsCount = fields.length
+    val overpass = mutableSetOf<Int>()
+    var i = 0
+    while (i < fields.length) {
+        val accessFlags: Short = fields[i]
+
+        if ((accessFlags.toInt() and 0x00000800) != 0) {
+            fieldsCount--
+            overpass += i / 6
+        }
+        i += 6
+    }
+    val javaFieldsCount = fields.length / 6
+
+    val base = ik._fields.address.base
+
+    buf.writeShort(javaFieldsCount)
+    for (i in 0 until fieldsCount) {
+        val fieldAddress = Address(scope, base + (i * 6))
+        val field = FieldInfo(fieldAddress)
+        val nameIndex = field.nameIndex
+        val signatureIndex = field.signatureIndex
+        val initialValueIndex = field.initialValueIndex
 
     }
 }
 
 fun KlassDumper.writeAttributeNameIndex(name: String) {
-    // todo
+    val attributeNameIndex = pool.getUtf8SymbolIndex(name)
+    buf.writeShort(attributeNameIndex)
 }
 
 fun KlassDumper.writeClassAttributes() {
     val innerClasses = InnerClassesIterator(scope, ik)
-    val genericSignature = ik.genericSignature
+    val genericSignatureIndex = ik.genericSignatureIndex
     val annotations = ik.annotations
     val typeAnnotations = ik.typeAnnotations
 
     var attributeCount = 0
-    if (genericSignature != null) {
+    if (genericSignatureIndex != 0.toShort()) {
         ++attributeCount
     }
     if (ik.sourceFileName != null) {
@@ -100,9 +123,8 @@ fun KlassDumper.writeClassAttributes() {
 
     buf.writeShort(attributeCount)
 
-    if (genericSignature != null) {
-        // todo: symbol_to_cpool_index(generic_signature)
-        writeSignatureAttribute(0)
+    if (genericSignatureIndex != 0.toShort()) {
+        writeSignatureAttribute(genericSignatureIndex.toInt())
     }
     if (ik.sourceFileName != null) {
         writeSourceFileAttribute()

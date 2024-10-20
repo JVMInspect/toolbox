@@ -13,8 +13,6 @@ class InstanceKlass(address: Address) : Klass(address) {
     val nestHostIndex: Short by short("_nest_host_index")
     val nestMembers: Array<Short> by array("_nest_members")
 
-    val javaFieldsCount: Short get() = TODO()
-
     val permittedSubclasses: Array<Short> by lazy {
         val nestHostAddress = type.field("_nest_members").offsetOrAddress + pointerSize
         val permittedSubclassesAddress = nestHostAddress + pointerSize
@@ -40,7 +38,7 @@ class InstanceKlass(address: Address) : Klass(address) {
         unsafe.getString(unsafe.getAddress(sourceDebugExtensionAddress))
     }
 
-    val genericSignature: Symbol get() = TODO()
+    val genericSignatureIndex: Short get() = constantPool.genericSignatureIndex
     val sourceFileName: Symbol? by nullableStruct("_source_file_name")
 
     private val _annotations: Annotations? by nullableStruct("_annotations")
@@ -54,7 +52,7 @@ class InstanceKlass(address: Address) : Klass(address) {
     val localInterfaces: Array<InstanceKlass>? by nullableArray("_local_interfaces")
 
     val methods: Array<Method> by array("_methods")
-    val _fields: Array<Byte> by array("_fieldinfo_stream")
+    val _fields: Array<Short> by array("_fields")
     val methodOrdering: Array<Int> by array("_method_ordering")
 }
 

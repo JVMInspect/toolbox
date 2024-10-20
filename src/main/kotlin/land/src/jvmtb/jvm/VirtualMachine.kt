@@ -106,6 +106,19 @@ class VirtualMachine(private val process: RemoteProcess) : VMScope {
         }
     }
 
+    fun print() {
+        for ((key, value) in constants) {
+            val type = if (value is Long) "long" else "int"
+            println("const $type $key = $value")
+        }
+        println()
+
+        println("Types:")
+        for (type in types.values) {
+            println(type)
+        }
+    }
+
     fun is64Bit() = process.is64Bit()
 
     private fun symbol(name: String): Long =

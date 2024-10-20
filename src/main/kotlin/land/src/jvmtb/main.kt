@@ -9,7 +9,7 @@ import land.src.jvmtb.remote.impl.WindowsRemoteProcess
 fun main() {
     val remotes = System.getProperty("os.name").let {
         when {
-            it.contains("windows", ignoreCase = true) -> WindowsRemoteProcess.remotes
+            it.contains("windows", ignoreCase = true) -> setOf(WindowsRemoteProcess.current) //WindowsRemoteProcess.remotes
             it.contains("linux", ignoreCase = true) -> LinuxRemoteProcess.remotes
             else -> error("Unsupported OS: $it")
         }
@@ -18,18 +18,21 @@ fun main() {
     val proc = remotes.first()
     proc.attach()
     val vm = VirtualMachine(proc)
+
     val version: VMVersion = vm.structs()
     println(version)
-    val graph: ClassLoaderDataGraph = vm.structs()
-    for (loadedClass in graph.getLoadedClasses()) {
-        println(loadedClass.name.string)
-        val supers = loadedClass.secondarySupers
-        if (supers != null) {
-            for (s in supers) {
-                println("\tsuper: "+ s.name.string)
-            }
-        }
-    }
+
+    vm.print()
+    //val graph: ClassLoaderDataGraph = vm.structs()
+    //for (loadedClass in graph.getLoadedClasses()) {
+    //    println(loadedClass.name.string)
+    //    val supers = loadedClass.secondarySupers
+    //    if (supers != null) {
+    //        for (s in supers) {
+    //            println("\tsuper: "+ s.name.string)
+    //        }
+    //    }
+    //}
     proc.detach()
 }
 

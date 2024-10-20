@@ -13,6 +13,15 @@ class Field(
         return offsetOrAddress.compareTo(other.offsetOrAddress)
     }
 
+    @OptIn(ExperimentalStdlibApi::class)
+    override fun toString(): String {
+        return if (isStatic) {
+            "static $typeName $name @0x${offsetOrAddress.toHexString()}"
+        } else {
+            "$typeName $name @ $offsetOrAddress"
+        }
+    }
+
 // fun getString(offset: Long = 0) = vm.getString(offsetOrAddress + offset)
 // fun getStringRef(offset: Long = 0) = vm.getStringRef(offsetOrAddress + offset)
 

@@ -27,4 +27,14 @@ class Type(
 
         throw IllegalArgumentException("${this.name}.$name is not an instance field")
     }
+
+    override fun toString(): String {
+        val sb = StringBuilder(name)
+        if (superName.isNotBlank()) sb.append(" extends ").append(superName)
+        sb.append(" @ ").append(size).append('\n')
+        for (field in fields) {
+            sb.append("  ").append(field).append('\n')
+        }
+        return sb.toString()
+    }
 }
