@@ -89,7 +89,7 @@ class ConstMethod(address: Address) : Struct(address) {
     val lineNumberTableEntries: Int get() = TODO()
 
     val constMethodEnd get(): Long {
-        return address.base + constMethodSize
+        return address.base + (constMethodSize * pointerSize)
     }
 
     val codeBase: Long get() = address.base + pointerSize
@@ -98,6 +98,16 @@ class ConstMethod(address: Address) : Struct(address) {
     val compressedLineNumberTable: Array<Short> get() {
         return arrays(address = address.base + codeEnd, isElementPointer = false)!!
     }
+
+    /**
+     *     int offset = 0;
+     *     if (hasMethodAnnotations()) offset++;
+     *     if (hasParameterAnnotations()) offset++;
+     *     if (hasTypeAnnotations()) offset++;
+     *     if (hasDefaultAnnotations()) offset++;
+     *     long wordSize = VM.getVM().getObjectHeap().getOopSize();
+     *     return (getSize() * wordSize) - (offset * wordSize) - sizeofShort;
+     */
 
     val lastU2Element: Long get() {
         var offset = 0
@@ -123,13 +133,13 @@ class ConstMethod(address: Address) : Struct(address) {
     val methodParametersStart: Long get() {
         val addr = methodParametersLengthAddr
         val length = unsafe.getLong(addr)
-        return addr - length * /* sizeof(MethodParametersElement) */ 4 / /* sizeof(u2) */ 2
+        return addr - length * /* sizeof(MethodParametersElement) */ 4 /// /* sizeof(u2) */ 2
     }
 
     val checkedExceptionsStart: Long get() {
         val addr = checkedExceptionsLengthAddr
         val length = unsafe.getLong(addr)
-        return addr - length * /* sizeof(CheckedExceptionElement) */ 2 / /* sizeof(u2) */ 2
+        return addr - length * /* sizeof(CheckedExceptionElement) */ 2 /// /* sizeof(u2) */ 2
     }
 
     val checkedExceptionsLength: Short get() =
@@ -138,7 +148,7 @@ class ConstMethod(address: Address) : Struct(address) {
     val exceptionTableStart: Long get() {
         val addr = exceptionTableLengthAddr
         val length = unsafe.getLong(addr)
-        return addr - length * /* sizeof(ExceptionTableElement) */ 8 / /* sizeof(u2) */ 2
+        return addr - length * /* sizeof(ExceptionTableElement) */ 8 /// /* sizeof(u2) */ 2
     }
 
     val localVariableTableLengthAddr: Long get() =
@@ -154,7 +164,7 @@ class ConstMethod(address: Address) : Struct(address) {
     val localVariableTableStart: Long get() {
         val addr = localVariableTableLengthAddr
         val length = unsafe.getLong(addr)
-        return addr - length * /* sizeof(LocalVariableTableElement) */ 12 / /* sizeof(u2) */ 2
+        return addr - length * /* sizeof(LocalVariableTableElement) */ 12 /// /* sizeof(u2) */ 2
     }
 
     val exceptionTableLength: Short get() =

@@ -321,7 +321,7 @@ class KlassDumper(
         val defaultAnnotations = method.constMethod.defaultAnnotations
         val typeAnnotations = method.constMethod.typeAnnotations
 
-        buf.writeShort(accessFlags and JVM_RECOGNIZED_METHOD_MODIFIERS.toInt())
+        buf.writeShort(accessFlags and JVM_RECOGNIZED_METHOD_MODIFIERS)
         buf.writeShort(constMethod.nameIndex.toInt())
         buf.writeShort(constMethod.signatureIndex.toInt())
 
@@ -471,6 +471,7 @@ class KlassDumper(
 
     }
 
+    @OptIn(ExperimentalStdlibApi::class)
     fun writeCodeAttribute(method: Method) {
         val constMethod = method.constMethod
 
@@ -506,10 +507,13 @@ class KlassDumper(
                 attributesSize += 2 + 4 + 2 + localVariableTableLength * (2 + 2 + 2 + 2 + 2)
             }
 
+            println("LVT len: $localVariableTableLength")
+
             // Local variables with generic signatures must have LVTT entries
             val start = method.constMethod.localVariableTableStart
             for (index in 0 until localVariableTableLength) {
                 val address = start + (index * scope.pointerSize)
+                println("reading $index at ${address.toHexString()}")
                 val element = scope.structs<LocalVariableTableElement>(address)!!
                 if (element.signatureCpIndex != 0.toShort()) {
                     localVariableTypeTableLength++
