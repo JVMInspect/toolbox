@@ -79,7 +79,7 @@ class InstanceKlass(address: Address) : Klass(address) {
         while (index < fields.length) {
             val accessFlags: Short = fields[index]!!
 
-            if ((accessFlags.toInt() and 0x00000800) != 0) {
+            if ((accessFlags.toInt() and JVM_ACC_FIELD_HAS_GENERIC_SIGNATURE) != 0) {
                 fieldCount--
             }
             index += 6
