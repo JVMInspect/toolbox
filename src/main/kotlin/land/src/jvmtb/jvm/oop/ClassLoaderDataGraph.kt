@@ -1,9 +1,9 @@
 package land.src.jvmtb.jvm.oop
 
-import land.src.jvmtb.dsl.struct
-import land.src.jvmtb.jvm.Address
-import land.src.jvmtb.jvm.Struct
+import land.src.toolbox.jvm.dsl.nonNull
+import land.src.toolbox.jvm.primitive.Address
+import land.src.toolbox.jvm.primitive.Struct
 
 class ClassLoaderDataGraph(address: Address) : Struct(address) {
-    val head: ClassLoaderData by struct("_head")
+    val head: ClassLoaderData by nonNull("_head")
 }

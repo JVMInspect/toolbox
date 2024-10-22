@@ -1,11 +1,10 @@
 package land.src.jvmtb.jvm.oop
 
-import land.src.jvmtb.dsl.nullableStruct
-import land.src.jvmtb.dsl.struct
-import land.src.jvmtb.jvm.Address
-import land.src.jvmtb.jvm.Struct
+import land.src.toolbox.jvm.dsl.maybeNull
+import land.src.toolbox.jvm.primitive.Address
+import land.src.toolbox.jvm.primitive.Struct
 
 class ClassLoaderData(address: Address) : Struct(address) {
-    val klasses: Klass? by nullableStruct("_klasses")
-    val next: ClassLoaderData? by nullableStruct("_next")
+    val klasses: Klass? by maybeNull("_klasses")
+    val next: ClassLoaderData? by maybeNull("_next")
 }

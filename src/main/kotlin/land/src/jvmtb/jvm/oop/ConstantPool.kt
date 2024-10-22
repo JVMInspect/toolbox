@@ -1,22 +1,24 @@
 package land.src.jvmtb.jvm.oop
 
-import land.src.jvmtb.dsl.array
-import land.src.jvmtb.dsl.int
-import land.src.jvmtb.dsl.nullableArray
-import land.src.jvmtb.dsl.short
-import land.src.jvmtb.jvm.Address
-import land.src.jvmtb.jvm.Struct
 import land.src.jvmtb.util.ClassConstants.JVM_CONSTANT_Class
 import land.src.jvmtb.util.ClassConstants.JVM_CONSTANT_Utf8
+import land.src.toolbox.jvm.dsl.maybeNull
+import land.src.toolbox.jvm.dsl.maybeNullArray
+import land.src.toolbox.jvm.dsl.nonNull
+import land.src.toolbox.jvm.dsl.nonNullArray
+import land.src.toolbox.jvm.primitive.Array
+import land.src.toolbox.jvm.primitive.Struct
+import land.src.toolbox.jvm.primitive.Address
 
 class ConstantPool(address: Address) : Struct(address) {
-    val length: Int by int("_length")
-    val majorVersion: Short by short("_major_version")
-    val minorVersion: Short by short("_minor_version")
-    val tags: Array<Byte> by array("_tags")
-    val operands: Array<Short>? by nullableArray("_operands")
-    val genericSignatureIndex: Short by short("_generic_signature_index")
-    val resolvedKlasses: Array<Klass> by array("_resolved_klasses")
+    val length: Int by nonNull("_length")
+    val majorVersion: Short by nonNull("_major_version")
+    val minorVersion: Short by nonNull("_minor_version")
+    val tags: Array<Byte> by nonNullArray("_tags")
+    val operands: Array<Short>? by maybeNullArray("_operands")
+    val genericSignatureIndex: Short by nonNull("_generic_signature_index")
+    val resolvedKlasses: Array<Klass> by nonNullArray("_resolved_klasses")
+    val sourceFileNameIndex: Short by nonNull("_source_file_name_index")
 
     val dataBase by lazy {
         address.base + vm.type("ConstantPool").size
@@ -67,7 +69,7 @@ class ConstantPool(address: Address) : Struct(address) {
 
     fun buildIndices() {
         for (index in 1 until length) {
-            val tag = tags[index]
+            val tag = tags[index]!!
             when (tag.toInt()) {
                 JVM_CONSTANT_Utf8 -> {
                     val symbol = getSymbol(index)
@@ -83,5 +85,5 @@ class ConstantPool(address: Address) : Struct(address) {
     }
 
     fun getUtf8SymbolIndex(string: String): Int = utf8SymbolMap[string] ?: error("Symbol not present $string")
-    fun getClassSymbolIndex(string: String): Int = classSymbolMap[string] ?: error("ClassS not present $string")
+    fun getClassSymbolIndex(string: String): Int = classSymbolMap[string] ?: error("Class not present $string")
 }

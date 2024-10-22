@@ -1,6 +1,6 @@
 package land.src.jvmtb.jvm.oop
 
-import land.src.jvmtb.jvm.VMScope
+import land.src.toolbox.jvm.Scope
 
 class InnerClassInfo(
     var accessFlags: Short,
@@ -9,7 +9,7 @@ class InnerClassInfo(
     var outerClassInfo: Short
 )
 
-class InnerClassesIterator(scope: VMScope, ik: InstanceKlass) : VMScope by scope, Iterator<InnerClassInfo> {
+class InnerClassesIterator(scope: Scope, ik: InstanceKlass) : Scope by scope, Iterator<InnerClassInfo> {
     private var index = 0
     private val innerClasses = ik.innerClasses
     val length = innerClasses?.length ?: 0
@@ -39,10 +39,10 @@ class InnerClassesIterator(scope: VMScope, ik: InstanceKlass) : VMScope by scope
     override fun next(): InnerClassInfo {
         index += innerClassNextOffset
         val array = innerClasses!!
-        val access = array[index + innerClassAccessFlagsOffset]
-        val classInfo = array[index + innerClassInnerClassInfoOffset]
-        val className = array[index + innerClassInnerNameOffset]
-        val outerClassInfo = array[index + innerClassOuterClassInfoOffset]
+        val access = array[index + innerClassAccessFlagsOffset]!!
+        val classInfo = array[index + innerClassInnerClassInfoOffset]!!
+        val className = array[index + innerClassInnerNameOffset]!!
+        val outerClassInfo = array[index + innerClassOuterClassInfoOffset]!!
         return InnerClassInfo(access, classInfo, className, outerClassInfo)
     }
 }

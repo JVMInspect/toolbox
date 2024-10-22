@@ -1,7 +1,8 @@
 package land.src.jvmtb.jvm.oop
 
-import land.src.jvmtb.jvm.Address
-import land.src.jvmtb.jvm.Struct
+import land.src.toolbox.jvm.primitive.Address
+import land.src.toolbox.jvm.primitive.Struct
+import land.src.toolbox.jvm.primitive.Array
 
 class RecordComponent(address: Address) : Struct(address) {
     val annotations: Array<Byte>? by lazy {

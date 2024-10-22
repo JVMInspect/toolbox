@@ -1,9 +1,9 @@
 package land.src.jvmtb.jvm.oop
 
-import land.src.jvmtb.dsl.short
-import land.src.jvmtb.jvm.Address
-import land.src.jvmtb.jvm.Struct
+import land.src.toolbox.jvm.dsl.nonNull
+import land.src.toolbox.jvm.primitive.Address
+import land.src.toolbox.jvm.primitive.Struct
 
 class CheckedExceptionElement(address: Address) : Struct(address) {
-    val classCpIndex by short("class_cp_index")
+    val classCpIndex: Short by nonNull("class_cp_index")
 }

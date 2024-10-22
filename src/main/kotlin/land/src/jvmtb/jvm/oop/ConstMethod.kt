@@ -1,28 +1,28 @@
 package land.src.jvmtb.jvm.oop
 
-import land.src.jvmtb.dsl.int
-import land.src.jvmtb.dsl.nullableArray
-import land.src.jvmtb.dsl.short
-import land.src.jvmtb.dsl.struct
-import land.src.jvmtb.jvm.Address
-import land.src.jvmtb.jvm.Struct
+import land.src.toolbox.jvm.dsl.maybeNull
+import land.src.toolbox.jvm.dsl.maybeNullArray
+import land.src.toolbox.jvm.dsl.nonNull
+import land.src.toolbox.jvm.primitive.Address
+import land.src.toolbox.jvm.primitive.Struct
+import land.src.toolbox.jvm.primitive.Array
 
 class ConstMethod(address: Address) : Struct(address) {
-    val maxStack: Short by short("_max_stack")
-    val maxLocals: Short by short("_max_locals")
+    val maxStack: Short by nonNull("_max_stack")
+    val maxLocals: Short by nonNull("_max_locals")
 
-    val stackMapData: Array<Byte>? by nullableArray("_stackmap_data")
+    val stackMapData: Array<Byte>? by maybeNullArray("_stackmap_data")
     val hasStackMapTable: Boolean get() = stackMapData != null
 
-    val constants: ConstantPool by struct("_constants")
+    val constants: ConstantPool by nonNull("_constants")
 
-    val nameIndex: Short by short("_name_index")
-    val signatureIndex: Short by short("_signature_index")
+    val nameIndex: Short by nonNull("_name_index")
+    val signatureIndex: Short by nonNull("_signature_index")
 
-    val codeSize: Short by short("_code_size")
-    val constMethodSize: Int by int("_constMethod_size")
+    val codeSize: Short by nonNull("_code_size")
+    val constMethodSize: Int by nonNull("_constMethod_size")
 
-    val flags: Int by int("_flags")
+    val flags: Int by nonNull("_flags")
 
     val hasLineNumberTable: Boolean get() = flags and (1 shl 0) != 0
     val hasCheckedExceptions: Boolean get() = flags and (1 shl 1) != 0
@@ -37,12 +37,13 @@ class ConstMethod(address: Address) : Struct(address) {
     val hasDefaultAnnotations: Boolean get() = flags and (1 shl 10) != 0
 
     val methodAnnotationsAddr: Long get() {
-        return constMethodEnd - pointerSize;
+        return constMethodEnd - pointerSize
     }
 
     val methodAnnotations: Array<Byte>? get() {
         if (!hasMethodAnnotations)
             return null
+
         return arrays(methodAnnotationsAddr, false)
     }
 
@@ -104,7 +105,7 @@ class ConstMethod(address: Address) : Struct(address) {
         if (hasParameterAnnotations) offset++
         if (hasTypeAnnotations) offset++
         if (hasDefaultAnnotations) offset++
-        return constMethodEnd - (offset * pointerSize) - pointerSize
+        return constMethodEnd - (offset * pointerSize) - Short.SIZE_BYTES
     }
 
     val genericSignatureIndexAddress: Long get() =
@@ -114,7 +115,7 @@ class ConstMethod(address: Address) : Struct(address) {
         if (hasGenericSignature) unsafe.getShort(genericSignatureIndexAddress) else 0
 
     val methodParametersLengthAddr: Long get() =
-        if (hasGenericSignature) lastU2Element - pointerSize else lastU2Element
+        if (hasGenericSignature) lastU2Element - Short.SIZE_BYTES else lastU2Element
 
     val methodParametersLength: Short get() =
         if (hasMethodParameters) unsafe.getShort(methodParametersLengthAddr) else 0
@@ -141,10 +142,10 @@ class ConstMethod(address: Address) : Struct(address) {
     }
 
     val localVariableTableLengthAddr: Long get() =
-        if (hasExceptionTable) exceptionTableStart - pointerSize
-        else if (hasCheckedExceptions) checkedExceptionsStart - pointerSize
-        else if (hasMethodParameters) methodParametersStart - pointerSize
-        else if (hasGenericSignature) lastU2Element - pointerSize
+        if (hasExceptionTable) exceptionTableStart - Short.SIZE_BYTES
+        else if (hasCheckedExceptions) checkedExceptionsStart - Short.SIZE_BYTES
+        else if (hasMethodParameters) methodParametersStart - Short.SIZE_BYTES
+        else if (hasGenericSignature) lastU2Element - Short.SIZE_BYTES
         else lastU2Element
 
     val localVariableTableLength: Short get() =
@@ -160,14 +161,14 @@ class ConstMethod(address: Address) : Struct(address) {
         if (hasExceptionTable) unsafe.getShort(exceptionTableLengthAddr) else 0
 
     val exceptionTableLengthAddr: Long get() =
-        if (hasCheckedExceptions) checkedExceptionsStart - pointerSize
-        else if (hasMethodParameters) methodParametersStart - pointerSize
-        else if (hasGenericSignature) lastU2Element - pointerSize
+        if (hasCheckedExceptions) checkedExceptionsStart - Short.SIZE_BYTES
+        else if (hasMethodParameters) methodParametersStart - Short.SIZE_BYTES
+        else if (hasGenericSignature) lastU2Element - Short.SIZE_BYTES
         else lastU2Element
 
     val checkedExceptionsLengthAddr: Long get() =
-        if (hasMethodParameters) methodParametersStart - pointerSize
-        else if (hasGenericSignature) lastU2Element - pointerSize
+        if (hasMethodParameters) methodParametersStart - Short.SIZE_BYTES
+        else if (hasGenericSignature) lastU2Element - Short.SIZE_BYTES
         else lastU2Element
 
 }

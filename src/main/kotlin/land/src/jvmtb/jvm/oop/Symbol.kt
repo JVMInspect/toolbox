@@ -1,17 +1,18 @@
 package land.src.jvmtb.jvm.oop
 
-import land.src.jvmtb.dsl.offset
-import land.src.jvmtb.dsl.short
-import land.src.jvmtb.jvm.Address
+import land.src.toolbox.jvm.dsl.nonNull
+import land.src.toolbox.jvm.dsl.offset
+import land.src.toolbox.jvm.primitive.Address
+import land.src.toolbox.jvm.primitive.Oop
 import java.io.ByteArrayInputStream
 import java.io.DataInputStream
 
 class Symbol(address: Address) : Oop(address) {
     private val _body by offset("_body")
-    private val _length by short("_length")
+    private val _length: Short by nonNull("_length")
 
     val length = _length.toInt() and 0xffff
-    val bytes = address.scope.unsafe.getMemory(address.base + _body, length)
+    val bytes = unsafe.getMemory(address.base + _body, length)
     val string = readModifiedUTF8(bytes)
 
     private fun readModifiedUTF8(buf: ByteArray): String {

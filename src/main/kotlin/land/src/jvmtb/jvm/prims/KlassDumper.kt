@@ -1,18 +1,16 @@
 package land.src.jvmtb.jvm.prims
 
-import land.src.jvmtb.jvm.Address
-import land.src.jvmtb.jvm.VMScope
 import land.src.jvmtb.jvm.oop.*
-import land.src.jvmtb.jvm.oop.Array
 import land.src.jvmtb.util.ClassConstants.*
+import land.src.toolbox.jvm.Scope
+import land.src.toolbox.jvm.primitive.Array
 import java.io.DataOutputStream
-import kotlin.experimental.and
 
 /**
  * Port of the jvmtiClassFileReconstituter from jvm sources
  */
 class KlassDumper(
-    val scope: VMScope,
+    val scope: Scope,
     val klass: Klass,
     val buf: DataOutputStream
 ) {
@@ -27,7 +25,9 @@ class KlassDumper(
         buf.writeShort(pool.length)
         buf.write(pool.bytes)
 
-        buf.writeShort(ik.accessFlags and JVM_RECOGNIZED_CLASS_MODIFIERS.toInt())
+        pool.buildIndices()
+
+        buf.writeShort(ik.accessFlags and JVM_RECOGNIZED_CLASS_MODIFIERS)
         buf.writeShort(pool.getClassSymbolIndex(ik.name.string))
         val superIndex = if (ik.superClass == null) 0 else pool.getClassSymbolIndex(ik.superClass!!.name.string)
         buf.writeShort(superIndex )
@@ -36,8 +36,9 @@ class KlassDumper(
         val numInterfaces = interfaces!!.length
         buf.writeShort(numInterfaces)
         for (index in 0 until numInterfaces) {
-            val iik = interfaces[index]
-            buf.writeShort(pool.getClassSymbolIndex(iik.name.string))
+            val iik = interfaces[index]!!
+            // todo: why does it not work with classSymbolIndex?
+            buf.writeShort(pool.getUtf8SymbolIndex(iik.name.string))
         }
 
         writeFieldInfos()
@@ -47,6 +48,7 @@ class KlassDumper(
 
     fun writeFieldInfos() {
         val fields = ik.javaFieldInfos
+        println("number of filtered fields: ${fields.size}")
 
         buf.writeShort(fields.size)
 
@@ -56,7 +58,10 @@ class KlassDumper(
     }
 
     fun writeFieldInfo(field: FieldInfo, index: Int) {
+        println("fieldAnnotations.length: ${ik.fieldsAnnotations!!.length}, index: $index")
+
         val annotations = ik.fieldsAnnotations?.get(index)
+        println("fieldAnnotations($index) = $annotations")
         val typeAnnotations = ik.fieldsTypeAnnotations?.get(index)
 
         buf.writeShort(field.accessFlags.toInt() and JVM_RECOGNIZED_FIELD_MODIFIERS)
@@ -110,7 +115,7 @@ class KlassDumper(
         if (genericSignatureIndex != 0.toShort()) {
             ++attributeCount
         }
-        if (ik.sourceFileName != null) {
+        if (ik.sourceFileNameIndex != 0.toShort()) {
             ++attributeCount
         }
         if (ik.sourceDebugExtension != null) {
@@ -146,7 +151,7 @@ class KlassDumper(
         if (genericSignatureIndex != 0.toShort()) {
             writeSignatureAttribute(genericSignatureIndex.toInt())
         }
-        if (ik.sourceFileName != null) {
+        if (ik.sourceFileNameIndex != 0.toShort()) {
             writeSourceFileAttribute()
         }
         if (ik.sourceDebugExtension != null) {
@@ -165,6 +170,8 @@ class KlassDumper(
             writeBootstrapMethodAttribute()
         }
         if (ik.nestHostIndex.toInt() != 0) {
+            println("nest host index: " + ik.nestHostIndex)
+            println("nestMembers.length: " + ik.nestMembers.length)
             writeNestHostAttribute()
         }
         if (ik.nestMembers.length != 0) {
@@ -181,7 +188,7 @@ class KlassDumper(
     fun writeSourceFileAttribute() {
         writeAttributeNameIndex("SourceFile")
         buf.writeInt(2)
-        buf.writeShort(pool.getUtf8SymbolIndex(ik.sourceFileName!!.string))
+        buf.writeShort(pool.sourceFileNameIndex.toInt())
     }
 
     fun writeSourceDebugExtensionAttribute() {
@@ -220,7 +227,8 @@ class KlassDumper(
         buf.writeInt(length)
         buf.writeShort(numberOfClasses)
         for (index in 0 until numberOfClasses) {
-            val classIndex = nestMembers[index]
+            //println("writing nest member $index")
+            val classIndex = nestMembers[index]!!
             buf.writeShort(classIndex.toInt())
         }
     }
@@ -230,11 +238,13 @@ class KlassDumper(
         val numberOfClasses = permittedSubclasses.length
         val length = 2 * (1 + numberOfClasses)
 
+        println("number of permitted subclasses $numberOfClasses")
+
         writeAttributeNameIndex("PermittedSubclasses")
         buf.writeInt(length)
         buf.writeShort(numberOfClasses)
         for (index in 0 until numberOfClasses) {
-            val classIndex = permittedSubclasses[index]
+            val classIndex = permittedSubclasses[index]!!
             buf.writeShort(classIndex.toInt())
         }
     }
@@ -245,7 +255,7 @@ class KlassDumper(
 
         var length = 2 + (2 * 3 * numberOfComponents)
         for (index in 0 until numberOfComponents) {
-            val component = components[index]
+            val component = components[index]!!
             if (component.genericSignatureIndex != 0.toShort()) {
                 length += 8
             }
@@ -261,7 +271,7 @@ class KlassDumper(
         buf.writeInt(length)
         buf.writeShort(numberOfComponents)
         for (index in 0 until numberOfComponents) {
-            val component = components[index]
+            val component = components[index]!!
             buf.writeShort(component.nameIndex.toInt())
             buf.writeShort(component.descriptorIndex.toInt())
             buf.writeShort(component.attributesCount.toInt())
@@ -384,7 +394,7 @@ class KlassDumper(
         val start = method.checkedExceptionsStart
         for (index in 0 until checkedExceptionsLength) {
             val address = start + (index * scope.pointerSize)
-            val element = scope.structs<CheckedExceptionElement>(address)
+            val element = scope.structs<CheckedExceptionElement>(address)!!
             buf.writeShort(element.classCpIndex.toInt())
         }
     }
@@ -399,7 +409,7 @@ class KlassDumper(
         val start = method.methodParametersStart
         for (index in 0 until length) {
             val address = start + (index * scope.pointerSize)
-            val element = scope.structs<MethodParametersElement>(address)
+            val element = scope.structs<MethodParametersElement>(address)!!
             buf.writeShort(element.nameCpIndex.toInt())
             buf.writeShort(element.flags.toInt())
         }
@@ -419,7 +429,7 @@ class KlassDumper(
         var numOverpass = 0
 
         for (index in 0 until numMethods) {
-            val method = methods[index]
+            val method = methods[index]!!
             if (method.constMethod.isOverpass) {
                 numOverpass++
             }
@@ -428,29 +438,32 @@ class KlassDumper(
         buf.writeShort(numMethods - numOverpass)
 
         val methodOrder = IntArray(numMethods)
-        for (index in 0 until numMethods) {
-            val originalIndex = ik.methodOrdering[index]
-            check(originalIndex in 0..<numMethods) {
-                "invalid original method index"
+
+        if (ik.methodOrdering != null) {
+            for (index in 0 until numMethods) {
+                val originalIndex = ik.methodOrdering!![index]!!
+                check(originalIndex in 0..<numMethods) {
+                    "invalid original method index"
+                }
+                methodOrder[originalIndex] = index
             }
-            methodOrder[originalIndex] = index
         }
 
         for (originalIndex in 0 until numMethods) {
-            val index = methodOrder[originalIndex]
-            writeMethodInfo(methods[index])
+            val index = methodOrder.getOrNull(originalIndex) ?: originalIndex
+            writeMethodInfo(methods[index]!!)
         }
     }
 
     fun writeLineNumberTableAttribute(method: Method, lineNumberCount: Int) {
-        writeAttributeNameIndex("LineNumberTable")
-        buf.writeInt(2 + lineNumberCount * (2 + 2))
-        buf.writeShort(lineNumberCount)
-        val stream = CompressedLineNumberReadStream(method.constMethod.compressedLineNumberTable)
-        for (pair in stream) {
-            buf.writeShort(pair.bci.toInt())
-            buf.writeShort(pair.line.toInt())
-        }
+        //writeAttributeNameIndex("LineNumberTable")
+        //buf.writeInt(2 + lineNumberCount * (2 + 2))
+        //buf.writeShort(lineNumberCount)
+        //val stream = CompressedLineNumberReadStream(method.constMethod.compressedLineNumberTable)
+        //for (pair in stream) {
+        //    buf.writeShort(pair.bci.toInt())
+        //    buf.writeShort(pair.line.toInt())
+        //}
     }
 
     // todo: write rewritten bytecode
@@ -469,13 +482,14 @@ class KlassDumper(
         var attributeCount = 0
         var attributesSize = 0
 
-        if (constMethod.hasLineNumberTable) {
-            lineNumberCount = constMethod.lineNumberTableEntries
-            if (lineNumberCount != 0) {
-                ++attributeCount
-                attributesSize += 2 + 4 + 2 + lineNumberCount * (2 + 2)
-            }
-        }
+        // todo
+        //if (constMethod.hasLineNumberTable) {
+        //    lineNumberCount = constMethod.lineNumberTableEntries
+        //    if (lineNumberCount != 0) {
+        //        ++attributeCount
+        //        attributesSize += 2 + 4 + 2 + lineNumberCount * (2 + 2)
+        //    }
+        //}
 
         if (constMethod.hasStackMapTable) {
             stackMapLength = constMethod.stackMapData!!.length
@@ -496,7 +510,7 @@ class KlassDumper(
             val start = method.constMethod.localVariableTableStart
             for (index in 0 until localVariableTableLength) {
                 val address = start + (index * scope.pointerSize)
-                val element = scope.structs<LocalVariableTableElement>(address)
+                val element = scope.structs<LocalVariableTableElement>(address)!!
                 if (element.signatureCpIndex != 0.toShort()) {
                     localVariableTypeTableLength++
                 }
@@ -525,7 +539,7 @@ class KlassDumper(
         val start = method.constMethod.exceptionTableStart
         for (index in 0 until exceptionTableLength) {
             val addr = start + (index * scope.pointerSize)
-            val element = scope.structs<ExceptionTableElement>(addr)
+            val element = scope.structs<ExceptionTableElement>(addr)!!
             buf.writeShort(element.startPc.toInt())
             buf.writeShort(element.endPc.toInt())
             buf.writeShort(element.handlerPc.toInt())
@@ -533,9 +547,9 @@ class KlassDumper(
         }
 
         buf.writeShort(attributeCount)
-        if (lineNumberCount != 0) {
-            writeLineNumberTableAttribute(method, lineNumberCount)
-        }
+        //if (lineNumberCount != 0) {
+        //    writeLineNumberTableAttribute(method, lineNumberCount)
+        //}
         if (stackMapLength != 0) {
             writeStackMapTableAttribute(method, stackMapLength)
         }
@@ -555,7 +569,7 @@ class KlassDumper(
         val start = method.constMethod.localVariableTableStart
         for (index in 0 until method.constMethod.localVariableTableLength) {
             val address = start + (index * scope.pointerSize)
-            val element = scope.structs<LocalVariableTableElement>(address)
+            val element = scope.structs<LocalVariableTableElement>(address)!!
             if (element.signatureCpIndex > 0.toShort()) {
                 buf.writeShort(element.startBci.toInt())
                 buf.writeShort(element.length.toInt())
@@ -574,7 +588,7 @@ class KlassDumper(
         val start = method.constMethod.localVariableTableStart
         for (index in 0 until localVariableTableLength) {
             val address = start + (index * scope.pointerSize)
-            val element = scope.structs<LocalVariableTableElement>(address)
+            val element = scope.structs<LocalVariableTableElement>(address)!!
             buf.writeShort(element.startBci.toInt())
             buf.writeShort(element.length.toInt())
             buf.writeShort(element.nameCpIndex.toInt())

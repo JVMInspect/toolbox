@@ -1,8 +1,9 @@
 package land.src.jvmtb.jvm.oop
 
-import land.src.jvmtb.dsl.*
-import land.src.jvmtb.jvm.Address
-import land.src.jvmtb.jvm.Struct
+import land.src.toolbox.jvm.dsl.maybeNull
+import land.src.toolbox.jvm.dsl.nonNull
+import land.src.toolbox.jvm.primitive.Address
+import land.src.toolbox.jvm.primitive.Struct
 
 private const val _lh_neutral_value = 0
 private const val _lh_array_tag_type_value = 0.inv()
@@ -17,14 +18,14 @@ open class Klass(address: Address) : Struct(address) {
 
     // field Klass _secondary_supers Array<Klass*>* false 40 0x0
 
-    val secondarySupers: Array<Klass>? by nullableArray("_secondary_supers")
+    val secondarySupers: Array<Klass>? by maybeNull("_secondary_supers")
 
-    val name: Symbol by oop("_name")
-    val nextLink: Klass? by nullableStruct("_next_link")
+    val name: Symbol by nonNull("_name")
+    val nextLink: Klass? by maybeNull("_next_link")
 
-    val layoutHelper by int("_layout_helper")
+    val layoutHelper: Int by nonNull("_layout_helper")
 
-    val accessFlags: Int by int("_access_flags")
+    val accessFlags: Int by nonNull("_access_flags")
 
     val klassType: Type get() = when {
         layoutHelper < _lh_neutral_value -> Type.InstanceKlass
@@ -32,5 +33,5 @@ open class Klass(address: Address) : Struct(address) {
         else -> Type.Klass
     }
 
-    val instanceKlass: InstanceKlass get() = InstanceKlass(address)
+    val instanceKlass: InstanceKlass get() = structs(address.base)!!
 }
