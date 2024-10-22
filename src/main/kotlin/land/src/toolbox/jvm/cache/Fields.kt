@@ -14,7 +14,7 @@ class Fields(scope: Scope) : Scope by scope {
 
     private fun supers(baseType: KClass<*>) = baseType.allSupertypes
         .mapNotNull { it.classifier as? KClass<*> }
-        .filter { structs.isStruct(it) }
+        .filter { structs.isStruct(it) && it != Struct::class }
 
     operator fun invoke(struct: Struct, name: String) = cache.computeIfAbsent(struct::class to name) {
         struct.type.field(name) ?: supers(struct::class).firstNotNullOfOrNull {
