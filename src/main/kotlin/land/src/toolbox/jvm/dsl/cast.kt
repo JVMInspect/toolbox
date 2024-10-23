@@ -24,10 +24,10 @@ class CastDelegate<S : Struct>(
     }
 
     class OopFactory<O : Any>(
-        val struct: Struct,
+        scope: Scope,
         private val address: Long,
         private val oopType: KClass<O>
-    ) : Scope by struct, Factory<O> {
+    ) : Scope by scope, Factory<O> {
         @Suppress("Unchecked_Cast")
         override fun invoke(): O? = oops(address, oopType) as? O?
     }
