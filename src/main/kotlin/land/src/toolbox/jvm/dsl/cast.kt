@@ -24,20 +24,20 @@ class CastDelegate<S : Struct>(
     }
 
     class OopFactory<O : Any>(
-        scope: Scope,
+        val struct: Struct,
         private val address: Long,
         private val oopType: KClass<O>
-    ) : Scope by scope, Factory<O> {
+    ) : Scope by struct, Factory<O> {
         @Suppress("Unchecked_Cast")
-        override fun invoke(): O? = oops(address, oopType, true) as? O?
+        override fun invoke(): O? = oops(address, oopType) as? O?
     }
 
     private val factory: Factory<S>? by lazy {
         val address = struct.address.base + offset
         if (oops.isOop(type))
-            return@lazy OopFactory<S>(this, address, type)
+            return@lazy OopFactory<S>(struct, address, type)
         if (structs.isStruct(type))
-            return@lazy StructFactory<S>(this, address, type)
+            return@lazy StructFactory<S>(struct, address, type)
         else null
     }
 
