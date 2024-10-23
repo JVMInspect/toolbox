@@ -242,10 +242,10 @@ class ConstantPool(address: Address) : Struct(address), Oop {
         return CPKlassSlot(value.high, value.low)
     }
 
-    fun getKlass(index: Int): land.src.toolbox.jvm.oop.Klass {
+    fun getKlass(index: Int): Klass {
         val resolved = getKlassSlot(index).resolvedKlassIndex
         val klassAddress = resolvedKlasses.getAddress(resolved.toInt())
-        return land.src.toolbox.jvm.oop.Klass(Address(this, klassAddress))
+        return Klass(Address(this, klassAddress))
     }
 
     fun getKlassNameAt(index: Int): Symbol {
