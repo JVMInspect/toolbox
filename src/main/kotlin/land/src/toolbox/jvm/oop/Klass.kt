@@ -18,21 +18,21 @@ open class Klass(address: Address) : Struct(address), Oop {
         ArrayKlass,
     }
 
-    val secondarySupers: Array<land.src.toolbox.jvm.oop.Klass>? by maybeNull("_secondary_supers")
+    val secondarySupers: Array<Klass>? by maybeNull("_secondary_supers")
 
-    val name: land.src.toolbox.jvm.oop.Symbol by nonNull("_name")
-    val nextLink: land.src.toolbox.jvm.oop.Klass? by maybeNull("_next_link")
+    val name: Symbol by nonNull("_name")
+    val nextLink: Klass? by maybeNull("_next_link")
 
     val layoutHelper: Int by nonNull("_layout_helper")
 
     val accessFlags: Int by nonNull("_access_flags")
 
-    val klassType: land.src.toolbox.jvm.oop.Klass.Type
+    val klassType: Type
         get() = when {
-        layoutHelper < land.src.toolbox.jvm.oop._lh_neutral_value -> land.src.toolbox.jvm.oop.Klass.Type.InstanceKlass
-        layoutHelper > land.src.toolbox.jvm.oop._lh_neutral_value -> land.src.toolbox.jvm.oop.Klass.Type.ArrayKlass
-        else -> land.src.toolbox.jvm.oop.Klass.Type.Klass
+        layoutHelper < _lh_neutral_value -> Type.InstanceKlass
+        layoutHelper > _lh_neutral_value -> Type.ArrayKlass
+        else -> Type.Klass
     }
 
-    val instanceKlass: land.src.toolbox.jvm.oop.InstanceKlass by cast()
+    val instanceKlass: InstanceKlass by cast()
 }

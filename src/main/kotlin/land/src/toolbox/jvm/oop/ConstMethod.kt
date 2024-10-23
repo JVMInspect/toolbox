@@ -129,13 +129,13 @@ class ConstMethod(address: Address) : Struct(address) {
         return offset - length * 8 // todo: size
     }
 
-    val exceptionTable: List<land.src.toolbox.jvm.oop.ExceptionTableElement> get() {
-        val value = mutableListOf<land.src.toolbox.jvm.oop.ExceptionTableElement>()
+    val exceptionTable: List<ExceptionTableElement> get() {
+        val value = mutableListOf<ExceptionTableElement>()
         var offset = exceptionTableOffset
         val length = exceptionTableLength
         for (index in 0 until length) {
             val elementAddress = Address(this, address.base + offset)
-            val element = land.src.toolbox.jvm.oop.ExceptionTableElement(elementAddress)
+            val element = ExceptionTableElement(elementAddress)
             value += element
             offset += element.type.size
         }
@@ -156,13 +156,13 @@ class ConstMethod(address: Address) : Struct(address) {
         return offset - length * 2 // todo: size
     }
 
-    val checkedExceptions: List<land.src.toolbox.jvm.oop.CheckedExceptionElement> get() {
-        val value = mutableListOf<land.src.toolbox.jvm.oop.CheckedExceptionElement>()
+    val checkedExceptions: List<CheckedExceptionElement> get() {
+        val value = mutableListOf<CheckedExceptionElement>()
         var offset = checkedExceptionsOffset
         val length = checkedExceptionsLength
         for (index in 0 until length) {
             val elementAddress = Address(this, address.base + offset)
-            val element = land.src.toolbox.jvm.oop.CheckedExceptionElement(elementAddress)
+            val element = CheckedExceptionElement(elementAddress)
             offset += element.type.size
         }
         return value
@@ -195,13 +195,13 @@ class ConstMethod(address: Address) : Struct(address) {
         return offset - length * 12 // todo: size
     }
 
-    val localVariableTable: List<land.src.toolbox.jvm.oop.LocalVariableTableElement> get() {
-        val value = mutableListOf<land.src.toolbox.jvm.oop.LocalVariableTableElement>()
+    val localVariableTable: List<LocalVariableTableElement> get() {
+        val value = mutableListOf<LocalVariableTableElement>()
         var offset = localVariableTableOffset
         val length = localVariableTableLength
         for (index in 0 until length) {
             val elementAddress = Address(this, address.base + offset)
-            val element = land.src.toolbox.jvm.oop.LocalVariableTableElement(elementAddress)
+            val element = LocalVariableTableElement(elementAddress)
             value += element
             offset += element.type.size
         }

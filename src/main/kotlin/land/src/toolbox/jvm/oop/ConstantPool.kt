@@ -1,6 +1,6 @@
 package land.src.toolbox.jvm.oop
 
-import land.src.toolbox.jvm.util.ClassConstants.*
+import land.src.toolbox.jvm.util.*
 import land.src.toolbox.jvm.dsl.maybeNullArray
 import land.src.toolbox.jvm.dsl.nonNull
 import land.src.toolbox.jvm.dsl.nonNullArray
@@ -15,10 +15,10 @@ class ConstantPool(address: Address) : Struct(address) {
     val majorVersion: Short by nonNull("_major_version")
     val minorVersion: Short by nonNull("_minor_version")
     val tags: Array<Byte> by nonNullArray("_tags")
-    val poolHolder: land.src.toolbox.jvm.oop.InstanceKlass by nonNull("_pool_holder")
+    val poolHolder: InstanceKlass by nonNull("_pool_holder")
     val operands: Array<Short>? by maybeNullArray("_operands")
     val genericSignatureIndex: Short by nonNull("_generic_signature_index")
-    val resolvedKlasses: Array<land.src.toolbox.jvm.oop.Klass> by nonNullArray("_resolved_klasses")
+    val resolvedKlasses: Array<Klass> by nonNullArray("_resolved_klasses")
     val sourceFileNameIndex: Short by nonNull("_source_file_name_index")
 
     val dataBase by lazy {

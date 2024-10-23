@@ -1,7 +1,6 @@
 package land.src.toolbox.jvm.util
 
 import land.src.toolbox.jvm.oop.*
-import land.src.toolbox.jvm.util.ClassConstants.*
 import land.src.toolbox.jvm.Scope
 import land.src.toolbox.jvm.oop.InnerClassesIterator
 import land.src.toolbox.jvm.primitive.Array
@@ -12,7 +11,7 @@ import java.io.DataOutputStream
  */
 class KlassDumper(
     val scope: Scope,
-    val klass: land.src.toolbox.jvm.oop.Klass,
+    val klass: Klass,
     val buf: DataOutputStream
 ) {
     val ik = klass.instanceKlass
@@ -55,7 +54,7 @@ class KlassDumper(
         }
     }
 
-    fun writeFieldInfo(field: land.src.toolbox.jvm.oop.FieldInfo, index: Int) {
+    fun writeFieldInfo(field: FieldInfo, index: Int) {
         val annotations = ik.fieldsAnnotations?.get(index)
         val typeAnnotations = ik.fieldsTypeAnnotations?.get(index)
 

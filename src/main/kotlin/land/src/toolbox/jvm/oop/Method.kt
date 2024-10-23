@@ -1,6 +1,6 @@
 package land.src.toolbox.jvm.oop
 
-import land.src.toolbox.jvm.util.ClassConstants.JVM_ACC_NATIVE
+import land.src.toolbox.jvm.util.*
 import land.src.toolbox.jvm.dsl.nonNull
 import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Struct
