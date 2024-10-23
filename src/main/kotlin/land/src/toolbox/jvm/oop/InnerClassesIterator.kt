@@ -1,4 +1,4 @@
-package land.src.jvmtb.jvm.oop
+package land.src.toolbox.jvm.oop
 
 import land.src.toolbox.jvm.Scope
 import land.src.toolbox.jvm.dsl.constant
@@ -10,7 +10,7 @@ class InnerClassInfo(
     var outerClassInfo: Short
 )
 
-class InnerClassesIterator(scope: Scope, ik: InstanceKlass) : Scope by scope, Iterator<InnerClassInfo> {
+class InnerClassesIterator(scope: Scope, ik: land.src.toolbox.jvm.oop.InstanceKlass) : Scope by scope, Iterator<InnerClassInfo> {
     private var index = 0
     private val innerClasses = ik.innerClasses
     val length = innerClasses?.length ?: 0

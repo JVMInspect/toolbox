@@ -1,9 +1,9 @@
-import land.src.jvmtb.jvm.Universe
-import land.src.toolbox.jvm.VMVersion
-import land.src.jvmtb.jvm.prims.KlassDumper
+import land.src.toolbox.jvm.Universe
+import land.src.toolbox.jvm.util.KlassDumper
 import land.src.toolbox.jvm.VirtualMachine
 import land.src.toolbox.remote.impl.LinuxRemoteProcess
 import land.src.toolbox.remote.impl.WindowsRemoteProcess
+import org.objectweb.asm.ClassReader
 import java.io.DataOutputStream
 import java.io.File
 
@@ -28,6 +28,8 @@ fun main() {
     val klassDumper = KlassDumper(vm, stringKlass, fileOutput)
 
     klassDumper.writeClassFileFormat()
+
+    ClassReader(File("String.class").readBytes())
 
     proc.detach()
 }

@@ -1,10 +1,9 @@
-package land.src.jvmtb.jvm
+package land.src.toolbox.jvm
 
-import land.src.jvmtb.jvm.oop.ClassLoaderData
-import land.src.jvmtb.jvm.oop.ClassLoaderDataGraph
-import land.src.jvmtb.jvm.oop.InstanceKlass
-import land.src.jvmtb.jvm.oop.Klass
-import land.src.toolbox.jvm.Scope
+import land.src.toolbox.jvm.oop.ClassLoaderData
+import land.src.toolbox.jvm.oop.ClassLoaderDataGraph
+import land.src.toolbox.jvm.oop.InstanceKlass
+import land.src.toolbox.jvm.oop.Klass
 import java.util.LinkedList
 
 class Universe(val scope: Scope) {

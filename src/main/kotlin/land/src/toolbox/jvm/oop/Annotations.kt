@@ -1,4 +1,4 @@
-package land.src.jvmtb.jvm.oop
+package land.src.toolbox.jvm.oop
 
 import land.src.toolbox.jvm.primitive.Array
 import land.src.toolbox.jvm.primitive.Address

@@ -1,4 +1,4 @@
-package land.src.jvmtb.jvm.oop
+package land.src.toolbox.jvm.oop
 
 class LineNumberPair(
     val line: Short,

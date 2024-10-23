@@ -1,17 +1,17 @@
-package land.src.jvmtb.jvm.oop
+package land.src.toolbox.jvm.oop
 
-import land.src.jvmtb.util.ClassConstants.*
+import land.src.toolbox.jvm.util.ClassConstants.*
 import land.src.toolbox.jvm.dsl.*
 import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Array
 import land.src.toolbox.jvm.primitive.ByteArray
 
-class InstanceKlass(address: Address) : Klass(address) {
+class InstanceKlass(address: Address) : land.src.toolbox.jvm.oop.Klass(address) {
     val majorVersion: Short get() = constantPool.majorVersion
     val minorVersion: Short get() = constantPool.minorVersion
-    val constantPool: ConstantPool by nonNull("_constants")
+    val constantPool: land.src.toolbox.jvm.oop.ConstantPool by nonNull("_constants")
 
-    val superClass: Klass? by maybeNull("_super")
+    val superClass: land.src.toolbox.jvm.oop.Klass? by maybeNull("_super")
 
     val nestHostIndex: Short by lazy {
         val staticOopFieldCountAddress = address.base + type.field("_static_oop_field_count")!!.offsetOrAddress
@@ -29,7 +29,7 @@ class InstanceKlass(address: Address) : Klass(address) {
         arrays(permittedSubclassesAddress, false)!!
     }
 
-    val recordComponents: Array<RecordComponent>? by lazy {
+    val recordComponents: Array<land.src.toolbox.jvm.oop.RecordComponent>? by lazy {
         val nestHostAddress = address.base + type.field("_inner_classes")!!.offsetOrAddress + (pointerSize * 2)
         val permittedSubclassesAddress = nestHostAddress + pointerSize
         val recordComponentsAddress = permittedSubclassesAddress + pointerSize
@@ -51,9 +51,9 @@ class InstanceKlass(address: Address) : Klass(address) {
     val genericSignatureIndex: Short get() = constantPool.genericSignatureIndex
     val sourceFileNameIndex: Short get() = constantPool.sourceFileNameIndex//Symbol? by nullableStruct("_source_file_name")
 
-    val _annotations: Annotations? by lazy {
+    val _annotations: land.src.toolbox.jvm.oop.Annotations? by lazy {
         val annotationsAddress = unsafe.getAddress(address.base + type.field("_annotations")!!.offsetOrAddress)
-        Annotations(Address(this, annotationsAddress))
+        land.src.toolbox.jvm.oop.Annotations(Address(this, annotationsAddress))
     }
 
     val annotations: Array<Byte>? get() = _annotations!!.classAnnotations
@@ -62,9 +62,9 @@ class InstanceKlass(address: Address) : Klass(address) {
     val fieldsTypeAnnotations: Array<ByteArray>? get() = _annotations!!.fieldsTypeAnnotations
 
     val innerClasses: Array<Short>? by maybeNullArray("_inner_classes")
-    val localInterfaces: Array<InstanceKlass>? by maybeNullArray("_local_interfaces")
+    val localInterfaces: Array<land.src.toolbox.jvm.oop.InstanceKlass>? by maybeNullArray("_local_interfaces")
 
-    val methods: Array<Method> by nonNullArray("_methods")
+    val methods: Array<land.src.toolbox.jvm.oop.Method> by nonNullArray("_methods")
     val fieldData: Array<Short> by nonNullArray("_fields")
     val javaFieldsCount: Short by nonNull("_java_fields_count")
     val methodOrdering: Array<Int>? by maybeNullArray("_method_ordering")
@@ -76,8 +76,8 @@ class InstanceKlass(address: Address) : Klass(address) {
     val lowPackedOffset: Int by constant("FieldInfo::low_packed_offset")
     val highPackedOffset: Int by constant("FieldInfo::high_packed_offset")
 
-    val fieldInfos: List<FieldInfo> by lazy {
-        val info = mutableListOf<FieldInfo>()
+    val fieldInfos: List<land.src.toolbox.jvm.oop.FieldInfo> by lazy {
+        val info = mutableListOf<land.src.toolbox.jvm.oop.FieldInfo>()
         var fieldCount = fieldData.length
 
         var index = 0
@@ -104,13 +104,20 @@ class InstanceKlass(address: Address) : Klass(address) {
             val lowOffset = fieldData[i * 6 + lowPackedOffset]!!
             val highOffset = fieldData[i * 6 + highPackedOffset]!!
 
-            info += FieldInfo(accessFlags, nameIndex, signatureIndex, initialValIndex, lowOffset, highOffset)
+            info += land.src.toolbox.jvm.oop.FieldInfo(
+                accessFlags,
+                nameIndex,
+                signatureIndex,
+                initialValIndex,
+                lowOffset,
+                highOffset
+            )
         }
 
         info
     }
 
-    val javaFieldInfos: List<FieldInfo> by lazy {
+    val javaFieldInfos: List<land.src.toolbox.jvm.oop.FieldInfo> by lazy {
         fieldInfos.filter { it.accessFlags.toInt() and JVM_ACC_FIELD_INTERNAL == 0 }
     }
 }
