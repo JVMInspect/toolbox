@@ -31,25 +31,25 @@ class Fields(scope: Scope) : Scope by scope {
         addresses[struct::class to name] ?: error("${struct.type.name}#$name has not been mapped to an address!")
 
     fun put(struct: Struct, name: String, location: FieldLocation<*>) {
+        val key = struct::class to name
+        if (addresses.containsKey(key) || offsets.containsKey(key)) {
+            return
+        }
+
         when (location) {
             is FieldLocation.Name -> {
                 val field = this(struct, location.value) ?:
                     error("Could not find ${struct.type.name}#${location.value}")
 
                 val map = if (field.isStatic) addresses else offsets
-                map.computeIfAbsent(struct::class to name) {
-                    field.offsetOrAddress
-                }
+
+                map[key] = field.offsetOrAddress
             }
             is FieldLocation.Offset -> {
-                offsets.computeIfAbsent(struct::class to name) {
-                    location.value
-                }
+                offsets[key] = location.value
             }
             is FieldLocation.Address -> {
-                addresses.computeIfAbsent(struct::class to name) {
-                    location.value
-                }
+                addresses[key] = location.value
             }
         }
     }
