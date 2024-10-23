@@ -11,14 +11,14 @@ abstract class BaseArrayFieldDelegate<E : Any>(
     val arrayType: KClass<out Array<E>>,
     val elementType: KClass<E>,
     val isElementPointer: Boolean,
-    val fieldName: String,
+    val location: FieldLocation<*>
 ) : Scope by struct {
-    protected val fieldAddress by lazy {
-        val field = structFields(struct, fieldName) ?: throw NoSuchFieldException("${struct.type.name}#$fieldName")
-        val base = struct.address.base
-        val address = if (field.isStatic) field.offsetOrAddress else base + field.offsetOrAddress
-
-        unsafe.getAddress(address)
+    protected val address: AddressProvider by lazy {
+        when (location) {
+            is FieldLocation.Name -> NamedFieldAddressProvider(struct, arrayType, location)
+            is FieldLocation.Offset -> OffsetFieldAddressProvider(struct, arrayType, location)
+            is FieldLocation.Address -> AddressFieldAddressProvider(struct, arrayType, location)
+        }
     }
 }
 
@@ -27,11 +27,13 @@ open class NullableArrayFieldDelegate<E : Any>(
     arrayType: KClass<out Array<E>>,
     elementType: KClass<E>,
     isElementPointer: Boolean,
-    fieldName: String,
-) : BaseArrayFieldDelegate<E>(struct, arrayType, elementType, isElementPointer, fieldName) {
+    location: FieldLocation<*>
+) : BaseArrayFieldDelegate<E>(struct, arrayType, elementType, isElementPointer, location) {
     @Suppress("Unchecked_Cast")
     open operator fun getValue(struct: Struct, property: KProperty<*>): Array<E>? {
-        return arrays(fieldAddress, arrayType, elementType, isElementPointer) as? Array<E>?
+        structFields.putLocation(struct, property.name, location)
+
+        return arrays(address(), arrayType, elementType, isElementPointer) as? Array<E>?
     }
 }
 
@@ -40,10 +42,10 @@ class ArrayFieldDelegate<E : Any>(
     arrayType: KClass<out Array<E>>,
     elementType: KClass<E>,
     isElementPointer: Boolean,
-    fieldName: String
-) : NullableArrayFieldDelegate<E>(struct, arrayType, elementType, isElementPointer, fieldName) {
+    location: FieldLocation<*>
+) : NullableArrayFieldDelegate<E>(struct, arrayType, elementType, isElementPointer, location) {
     override operator fun getValue(struct: Struct, property: KProperty<*>): Array<E> =
-        super.getValue(struct, property) ?: throw NullPointerException("${struct.typeName}#$fieldName")
+        super.getValue(struct, property) ?: throw NullPointerException("${struct.typeName}#$location")
 }
 
 inline fun <reified E : Any, reified A : Array<E>> Struct.maybeNullArray(
@@ -54,8 +56,23 @@ inline fun <reified E : Any, reified A : Array<E>> Struct.maybeNullArray(
     arrayType = A::class,
     elementType = E::class,
     isElementPointer = isElementPointer,
-    fieldName = fieldName,
+    location = FieldLocation.Name(fieldName, true)
 )
+
+inline fun <reified E : Any, reified A : Array<E>> Struct.maybeNullArray(
+    block: FieldLocationProviderScope.() -> FieldLocation<*>,
+    isElementPointer: Boolean = structs.isStruct(E::class)
+) : NullableArrayFieldDelegate<E> {
+    val provider = FieldLocationProvider(this)
+    val location = block(provider)
+    return NullableArrayFieldDelegate(
+        struct = this,
+        arrayType = A::class,
+        elementType = E::class,
+        isElementPointer = isElementPointer,
+        location = location
+    )
+}
 
 inline fun <reified E : Any, reified A : Array<E>> Struct.nonNullArray(
     fieldName: String,
@@ -65,5 +82,20 @@ inline fun <reified E : Any, reified A : Array<E>> Struct.nonNullArray(
     arrayType = A::class,
     elementType = E::class,
     isElementPointer = isElementPointer,
-    fieldName = fieldName,
+    location = FieldLocation.Name(fieldName, true)
 )
+
+inline fun <reified E : Any, reified A : Array<E>> Struct.nonNullArray(
+    block: FieldLocationProviderScope.() -> FieldLocation<*>,
+    isElementPointer: Boolean = structs.isStruct(E::class)
+) : ArrayFieldDelegate<E> {
+    val provider = FieldLocationProvider(this)
+    val location = block(provider)
+    return ArrayFieldDelegate(
+        struct = this,
+        arrayType = A::class,
+        elementType = E::class,
+        isElementPointer = isElementPointer,
+        location = location
+    )
+}

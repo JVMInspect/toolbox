@@ -18,7 +18,7 @@ class Structs(scope: Scope) : Scope by scope {
 
     private class Factory<S : Struct>(structType: KClass<*>) {
         private val handle = MethodHandles.lookup()
-            .findConstructor(structType.java, ConstructorType)
+            .findConstructor(structType.java, ConstructorType)!!
 
         init {
             require(structType != Struct::class && structType != Oop::class) {

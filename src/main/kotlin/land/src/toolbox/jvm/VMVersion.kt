@@ -9,8 +9,8 @@ class VMVersion(address: Address) : Struct(address) {
 
     val major: Int by nonNull("_vm_major_version")
     val minor: Int by nonNull("_vm_minor_version")
+    val build: Int by nonNull("_vm_build_version")
     val security: Int by nonNull("_vm_security_version")
-    val build: Int by nonNull("_vm_build_number")
     val release: String by nonNull("_s_vm_release", true)
 
     override fun toString() = release

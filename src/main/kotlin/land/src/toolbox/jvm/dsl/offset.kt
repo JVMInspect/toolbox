@@ -6,11 +6,11 @@ import kotlin.reflect.KProperty
 
 class OffsetImpl(struct: Struct, fieldName: String): Scope by struct {
     private val offset: Long by lazy {
-        val field = struct.type.field(fieldName)
+        val field = structFields(struct, fieldName)
         field?.offsetOrAddress ?: throw NoSuchFieldException("${struct.type.name}#$fieldName")
     }
 
-    operator fun getValue(thisRef: Struct, property: KProperty<*>) = offset
+    operator fun getValue(struct: Struct, property: KProperty<*>) = offset
 }
 
 fun Struct.offset(fieldName: String) = OffsetImpl(this, fieldName)

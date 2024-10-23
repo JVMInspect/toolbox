@@ -5,10 +5,8 @@ import land.src.toolbox.jvm.cache.Arrays
 import land.src.toolbox.jvm.cache.Fields
 import land.src.toolbox.jvm.cache.Oops
 import land.src.toolbox.jvm.cache.Structs
-import land.src.toolbox.jvm.dsl.nonNull
 import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Field
-import land.src.toolbox.jvm.primitive.Struct
 import land.src.toolbox.jvm.primitive.Type
 import land.src.toolbox.remote.RemoteProcess
 import java.util.*
@@ -19,6 +17,7 @@ class VirtualMachine(private val process: RemoteProcess) : Scope {
     private val constants = LinkedHashMap<String, Number>()
 
     override val vm = this
+    override val version: VMVersion
     override val unsafe = process.unsafe
     override val oops = Oops(this)
     override val arrays = Arrays(this)
@@ -29,6 +28,7 @@ class VirtualMachine(private val process: RemoteProcess) : Scope {
         readVmTypes(readVmStructs())
         readVmIntConstants()
         readVmLongConstants()
+        version = structs(Address.PLACEHOLDER)!!
     }
 
     private fun readVmStructs(): Map<String, MutableSet<Field>> {
