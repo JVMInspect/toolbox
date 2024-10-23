@@ -2,7 +2,6 @@ package land.src.toolbox.jvm.primitive
 
 import land.src.toolbox.jvm.Scope
 import kotlin.reflect.KClass
-import kotlin.reflect.KProperty
 
 open class Array<E : Any>(address: Address, private val elementInfo: ElementInfo) : Struct(address), Iterable<E> {
     data class ElementInfo(
@@ -61,14 +60,11 @@ open class Array<E : Any>(address: Address, private val elementInfo: ElementInfo
         else null
     }
 
-    @OptIn(ExperimentalStdlibApi::class)
     @Suppress("Unchecked_Cast")
     operator fun get(index: Int): E? {
         var elementAddress = elementBase + (index * elementSize).toLong()
         if (elementInfo.isPointer || elementInfo.isArray)
             elementAddress = unsafe.getAddress(elementAddress)
-
-        //println("getting element at 0x${elementAddress.toHexString()} (index: $index)")
 
         if (elementAddress == 0L)
             return null
@@ -102,3 +98,4 @@ open class Array<E : Any>(address: Address, private val elementInfo: ElementInfo
 }
 
 class ByteArray(address: Address, info: ElementInfo) : Array<Byte>(address, info)
+class ShortArray(address: Address, info: ElementInfo) : Array<Short>(address, info)
