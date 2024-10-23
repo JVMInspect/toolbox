@@ -97,5 +97,7 @@ class LinuxRemoteProcess(override val pid: Int) : RemoteProcess {
                 }
                 .map { LinuxRemoteProcess(it) }
                 .toSet()
+
+        val current: RemoteProcess = LinuxRemoteProcess(ProcessHandle.current().pid().toInt())
     }
 }

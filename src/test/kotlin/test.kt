@@ -8,15 +8,14 @@ import java.io.DataOutputStream
 import java.io.File
 
 fun main() {
-    val remotes = System.getProperty("os.name").let {
+    val proc = System.getProperty("os.name").let {
         when {
-            it.contains("windows", ignoreCase = true) -> setOf(WindowsRemoteProcess.current)
-            it.contains("linux", ignoreCase = true) -> LinuxRemoteProcess.remotes
+            it.contains("linux", ignoreCase = true) -> LinuxRemoteProcess.current
+            it.contains("windows", ignoreCase = true) -> WindowsRemoteProcess.current
             else -> error("Unsupported OS: $it")
         }
     }
 
-    val proc = remotes.first()
     proc.attach()
     val vm = VirtualMachine(proc)
 
