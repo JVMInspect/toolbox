@@ -41,7 +41,7 @@ class Structs(scope: Scope) : Scope by scope {
             return null
 
         require(!arrays.isArray(structType)) {
-            "Tried to use structs(...) on Array type"
+            "Use Scope#arrays, Struct#nonNullArray or Struct#maybeNullArray to declare arrays"
         }
 
         val factory = factories.computeIfAbsent(structType) {
