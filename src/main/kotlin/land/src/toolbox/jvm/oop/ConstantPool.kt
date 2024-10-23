@@ -6,11 +6,12 @@ import land.src.toolbox.jvm.dsl.nonNull
 import land.src.toolbox.jvm.dsl.nonNullArray
 import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Array
+import land.src.toolbox.jvm.primitive.Oop
 import land.src.toolbox.jvm.primitive.Struct
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 
-class ConstantPool(address: Address) : Struct(address) {
+class ConstantPool(address: Address) : Struct(address), Oop {
     val length: Int by nonNull("_length")
     val majorVersion: Short by nonNull("_major_version")
     val minorVersion: Short by nonNull("_minor_version")
