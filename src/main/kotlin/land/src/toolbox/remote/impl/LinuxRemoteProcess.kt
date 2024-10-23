@@ -11,6 +11,7 @@ import land.src.toolbox.util.iovec
 import java.io.File
 import java.io.RandomAccessFile
 import java.nio.ByteBuffer
+import java.nio.channels.FileChannel
 
 private val LibC = Linux.LibC
 
@@ -80,14 +81,18 @@ class LinuxRemoteProcess(override val pid: Int) : RemoteProcess {
     override fun is64Bit(): Boolean {
         // check if the elf header of the proc exe is 64 bit
 
-        val buffer = ByteBuffer.allocate(4)
         val file = RandomAccessFile("/proc/$pid/exe", "r")
         val channel = file.channel
-        channel.read(buffer, 4)
+        // make sure we rewind (procfs keeps seek)
+        channel.position(0)
+        val buffer = channel.map(FileChannel.MapMode.READ_ONLY, 0, 4)
+
+        val magic = buffer.int
+
         channel.close()
         file.close()
 
-        return buffer.int == 0x7f454c46
+        return magic == 0x7f454c46
     }
 
     companion object : RemoteProcessList {

@@ -16,6 +16,6 @@ interface Scope {
     val version: VMVersion
     val unsafe: RemoteUnsafe
 
-    val pointerSize: Long get() = if (vm.is64Bit()) 8 else 4
+    val pointerSize: Long get() = if (vm.is64Bit) 8 else 4
     val static: Address get() = Address(this, -1L)
 }
