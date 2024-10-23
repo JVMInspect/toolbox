@@ -21,8 +21,8 @@ class Structs(scope: Scope) : Scope by scope {
             .findConstructor(structType.java, ConstructorType)
 
         init {
-            check(structType != Struct::class && structType != Oop::class) {
-                "Factory must create implemented types"
+            require(structType != Struct::class && structType != Oop::class) {
+                "Factory must create implemented types (${structType.simpleName} is a raw type)"
             }
         }
 
@@ -30,14 +30,17 @@ class Structs(scope: Scope) : Scope by scope {
         operator fun invoke(address: Address): S = handle(address) as S
     }
 
+    fun isStruct(type: Class<*>): Boolean =
+        Struct::class.java.isAssignableFrom(type)
+
     fun isStruct(type: KClass<*>): Boolean =
-        Struct::class.java.isAssignableFrom(type.java)
+        isStruct(type.java)
 
     operator fun invoke(address: Long, structType: KClass<*>): Struct? {
         if (address == 0L)
             return null
 
-        check(!arrays.isArray(structType)) {
+        require(!arrays.isArray(structType)) {
             "Tried to use structs(...) on Array type"
         }
 
