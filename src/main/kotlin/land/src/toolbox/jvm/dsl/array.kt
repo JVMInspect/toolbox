@@ -31,7 +31,7 @@ open class NullableArrayFieldDelegate<E : Any>(
 ) : BaseArrayFieldDelegate<E>(struct, arrayType, elementType, isElementPointer, location) {
     @Suppress("Unchecked_Cast")
     open operator fun getValue(struct: Struct, property: KProperty<*>): Array<E>? {
-        structFields.putLocation(struct, property.name, location)
+        structFields.put(struct, property.name, location)
 
         return arrays(address(), arrayType, elementType, isElementPointer) as? Array<E>?
     }

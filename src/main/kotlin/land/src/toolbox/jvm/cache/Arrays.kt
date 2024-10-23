@@ -4,6 +4,7 @@ import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Array
 import land.src.toolbox.jvm.Scope
 import land.src.toolbox.jvm.primitive.ByteArray
+import land.src.toolbox.jvm.primitive.ShortArray
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
 import kotlin.reflect.KClass
@@ -52,11 +53,12 @@ class Arrays(scope: Scope) : Scope by scope {
     fun getElementType(arrayType: KClass<*>): KClass<*> = elements.computeIfAbsent(arrayType) {
         when (arrayType) {
             ByteArray::class -> Byte::class
+            ShortArray::class -> Short::class
             else -> error("No array element type mapped for ${arrayType.simpleName}")
         }
     }
 
-    fun <E : Any> ElementInfo(elementType: KClass<E>, isPointer: Boolean): Array.ElementInfo = Array.ElementInfo(
+    private fun <E : Any> ElementInfo(elementType: KClass<E>, isPointer: Boolean): Array.ElementInfo = Array.ElementInfo(
         type = elementType,
         size = elementSize(elementType),
         offset = elementOffset(elementType),

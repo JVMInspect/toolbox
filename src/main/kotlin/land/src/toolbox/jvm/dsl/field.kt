@@ -1,9 +1,6 @@
 package land.src.toolbox.jvm.dsl
 
 import land.src.toolbox.jvm.Scope
-import land.src.toolbox.jvm.VMVersion
-import land.src.toolbox.jvm.primitive.Address
-import land.src.toolbox.jvm.primitive.Oop
 import land.src.toolbox.jvm.primitive.Struct
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
@@ -122,7 +119,7 @@ open class NullableFieldDelegate<V : Any>(
 ) : BaseFieldDelegate<V>(struct, type, location) {
     @Suppress("Unchecked_Cast")
     open operator fun getValue(struct: Struct, property: KProperty<*>): V? {
-        structFields.putLocation(struct, property.name, location)
+        structFields.put(struct, property.name, location)
 
         if (factory != null)
             return factory!!()
