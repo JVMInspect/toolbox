@@ -8,8 +8,9 @@ import land.src.toolbox.jvm.dsl.nonNullArray
 import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Array
 import land.src.toolbox.jvm.primitive.ByteArray
+import land.src.toolbox.jvm.primitive.Oop
 
-class InstanceKlass(address: Address) : Klass(address) {
+class InstanceKlass(address: Address) : Klass(address), Oop {
     val majorVersion: Short get() = constantPool.majorVersion
     val minorVersion: Short get() = constantPool.minorVersion
     val constantPool: ConstantPool by nonNull("_constants")

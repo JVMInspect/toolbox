@@ -20,9 +20,7 @@ fun main() {
     proc.attach()
     val vm = VirtualMachine(proc)
 
-
     //vm.print()
-//
     val universe = Universe(vm)
     val stringKlass = universe.instanceKlass("java/lang/String")!!
 

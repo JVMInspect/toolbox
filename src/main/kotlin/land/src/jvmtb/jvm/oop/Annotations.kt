@@ -8,7 +8,7 @@ import land.src.toolbox.jvm.primitive.Struct
 class Annotations(address: Address) : Struct(address) {
     val classAnnotations: Array<Byte>? by lazy {
         val classAnnotationsArrayAddress = unsafe.getAddress(address.base)
-        arrays<Byte, Array<Byte>>(classAnnotationsArrayAddress, false)
+        arrays(classAnnotationsArrayAddress, false)
     }
     val fieldsAnnotations: Array<ByteArray>? by lazy {
         val fieldsAnnotationsArrayAddress = unsafe.getAddress(address.base + (pointerSize))
@@ -16,7 +16,7 @@ class Annotations(address: Address) : Struct(address) {
     }
     val classTypeAnnotations: Array<Byte>? by lazy {
         val classTypeAnnotationsArrayAddress = unsafe.getAddress(address.base + (pointerSize * 2))
-        arrays<Byte, Array<Byte>>(classTypeAnnotationsArrayAddress, false)
+        arrays(classTypeAnnotationsArrayAddress, false)
     }
     val fieldsTypeAnnotations: Array<ByteArray>? by lazy {
         val fieldsTypeAnnotationsArrayAddress = unsafe.getAddress(address.base + (pointerSize * 3))

@@ -7,7 +7,7 @@ public interface ClassConstants
     int JVM_CONSTANT_Unicode            = 2; // unused
     int JVM_CONSTANT_Integer            = 3;
     int JVM_CONSTANT_Float              = 4;
-    int JVM_CONSTANT_int               = 5;
+    int JVM_CONSTANT_Long               = 5;
     int JVM_CONSTANT_Double             = 6;
     int JVM_CONSTANT_Class              = 7;
     int JVM_CONSTANT_String             = 8;

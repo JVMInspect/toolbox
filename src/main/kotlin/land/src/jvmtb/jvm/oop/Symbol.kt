@@ -4,10 +4,11 @@ import land.src.toolbox.jvm.dsl.nonNull
 import land.src.toolbox.jvm.dsl.offset
 import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Oop
+import land.src.toolbox.jvm.primitive.Struct
 import java.io.ByteArrayInputStream
 import java.io.DataInputStream
 
-class Symbol(address: Address) : Oop(address) {
+class Symbol(address: Address) : Struct(address), Oop {
     private val _body by offset("_body")
     private val _length: Short by nonNull("_length")
 

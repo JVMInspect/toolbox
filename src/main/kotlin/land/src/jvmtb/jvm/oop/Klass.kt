@@ -3,6 +3,7 @@ package land.src.jvmtb.jvm.oop
 import land.src.toolbox.jvm.dsl.maybeNull
 import land.src.toolbox.jvm.dsl.nonNull
 import land.src.toolbox.jvm.primitive.Address
+import land.src.toolbox.jvm.primitive.Oop
 import land.src.toolbox.jvm.primitive.Struct
 
 private const val _lh_neutral_value = 0
@@ -33,5 +34,5 @@ open class Klass(address: Address) : Struct(address) {
         else -> Type.Klass
     }
 
-    val instanceKlass: InstanceKlass get() = structs(address.base)!!
+    val instanceKlass: InstanceKlass get() = oops(address.base)!!
 }
