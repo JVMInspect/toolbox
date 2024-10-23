@@ -158,10 +158,10 @@ class KlassDumper(
             println("writing source file debug extension")
             writeSourceDebugExtensionAttribute()
         }
-        //if (innerClasses.length > 0) {
-        //    println("writing ${innerClasses.length} inner classes")
-        //    writeInnerClassesAttribute(innerClasses)
-        //}
+        if (innerClasses.length > 0) {
+            println("writing ${innerClasses.length} inner classes")
+            writeInnerClassesAttribute(innerClasses)
+        }
         if (annotations != null) {
             println("writing ${annotations.length} class annotations")
             writeAnnotationsAttribute("RuntimeVisibleAnnotations", annotations)

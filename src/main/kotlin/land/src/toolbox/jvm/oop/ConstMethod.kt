@@ -22,6 +22,10 @@ class ConstMethod(address: Address) : Struct(address) {
     val codeSize: Short by nonNull("_code_size")
     val constMethodSize: Int by nonNull("_constMethod_size")
 
+    val code by lazy {
+        unsafe.getMemory(address.base + bytecodeOffset, codeSize.toInt())
+    }
+
     val flags: Int by nonNull("_flags")
 
     val hasLineNumberTable: Boolean get() = flags and (1 shl 0) != 0
