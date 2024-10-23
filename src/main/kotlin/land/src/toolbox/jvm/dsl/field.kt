@@ -12,11 +12,6 @@ abstract class BaseFieldDelegate<V : Any>(
     val fieldName: String,
     val isPointer: Boolean
 ) : Scope by struct {
-    init {
-        if (arrays.isArray(type))
-            throw IllegalArgumentException("Declare arrays using nonNullArray or maybeNullArray.")
-    }
-
     interface Factory<V> {
         operator fun invoke(): V?
     }

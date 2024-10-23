@@ -1,5 +1,6 @@
 package land.src.jvmtb.jvm.oop
 
+import land.src.toolbox.jvm.dsl.cast
 import land.src.toolbox.jvm.dsl.maybeNull
 import land.src.toolbox.jvm.dsl.nonNull
 import land.src.toolbox.jvm.primitive.Address
@@ -17,8 +18,6 @@ open class Klass(address: Address) : Struct(address) {
         ArrayKlass,
     }
 
-    // field Klass _secondary_supers Array<Klass*>* false 40 0x0
-
     val secondarySupers: Array<Klass>? by maybeNull("_secondary_supers")
 
     val name: Symbol by nonNull("_name")
@@ -34,5 +33,5 @@ open class Klass(address: Address) : Struct(address) {
         else -> Type.Klass
     }
 
-    val instanceKlass: InstanceKlass get() = oops(address.base)!!
+    val instanceKlass: InstanceKlass by cast()
 }
