@@ -10,10 +10,11 @@ class InnerClassInfo(
     var outerClassInfo: Short
 )
 
-class InnerClassesIterator(scope: Scope, ik: land.src.toolbox.jvm.oop.InstanceKlass) : Scope by scope, Iterator<InnerClassInfo> {
+class InnerClassesIterator(scope: Scope, ik: InstanceKlass) : Scope by scope, Iterator<InnerClassInfo> {
     private var index = 0
     private val innerClasses = ik.innerClasses
-    val length = innerClasses?.length ?: 0
+    var size = innerClasses?.length ?: 0
+    val entries get() = size / innerClassNextOffset
 
     private val innerClassAccessFlagsOffset: Int by constant("InstanceKlass::inner_class_access_flags_offset")
     private val innerClassInnerClassInfoOffset: Int by constant("InstanceKlass::inner_class_inner_class_info_offset")
@@ -21,7 +22,14 @@ class InnerClassesIterator(scope: Scope, ik: land.src.toolbox.jvm.oop.InstanceKl
     private val innerClassNextOffset: Int by constant("InstanceKlass::inner_class_next_offset")
     private val innerClassOuterClassInfoOffset: Int by constant("InstanceKlass::inner_class_outer_class_info_offset")
 
-    override fun hasNext() = length > index
+    private val innerClassEnclosingMethodAttributeSize: Int by constant("InstanceKlass::enclosing_method_attribute_size")
+
+    init {
+        if (size % innerClassNextOffset == innerClassEnclosingMethodAttributeSize)
+            size -= innerClassEnclosingMethodAttributeSize
+    }
+
+    override fun hasNext() = index < size
 
     override fun next(): InnerClassInfo {
         index += innerClassNextOffset

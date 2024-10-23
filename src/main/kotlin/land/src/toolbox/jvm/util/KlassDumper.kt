@@ -119,9 +119,9 @@ class KlassDumper(
         if (ik.sourceDebugExtension != null) {
             ++attributeCount
         }
-        //if (innerClasses.length > 0) {
-        //    ++attributeCount
-        //}
+        if (innerClasses.entries > 0) {
+            ++attributeCount
+        }
         if (annotations != null) {
             ++attributeCount
         }
@@ -158,8 +158,8 @@ class KlassDumper(
             println("writing source file debug extension")
             writeSourceDebugExtensionAttribute()
         }
-        if (innerClasses.length > 0) {
-            println("writing ${innerClasses.length} inner classes")
+        if (innerClasses.entries > 0) {
+            println("writing ${innerClasses.entries} inner classes")
             writeInnerClassesAttribute(innerClasses)
         }
         if (annotations != null) {
@@ -201,12 +201,14 @@ class KlassDumper(
     }
 
     fun writeInnerClassesAttribute(iterator: InnerClassesIterator) {
-        val entryCount = iterator.length
+        val entryCount = iterator.entries
         val size = 2 + entryCount * (2 + 2 + 2 + 2)
         writeAttributeNameIndex("InnerClasses")
         buf.writeInt(size)
         buf.writeShort(entryCount)
+        var i = 1
         for (info in iterator) {
+            println("writing inner class info: ${i++}")
             buf.writeShort(info.classInfo.toInt())
             buf.writeShort(info.outerClassInfo.toInt())
             buf.writeShort(info.innerName.toInt())

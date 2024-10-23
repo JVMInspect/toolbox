@@ -4,6 +4,7 @@ import land.src.toolbox.jvm.VirtualMachine
 import land.src.toolbox.remote.impl.LinuxRemoteProcess
 import land.src.toolbox.remote.impl.WindowsRemoteProcess
 import org.objectweb.asm.ClassReader
+import org.objectweb.asm.ClassWriter
 import java.io.DataOutputStream
 import java.io.File
 
@@ -29,6 +30,8 @@ fun main() {
     klassDumper.writeClassFileFormat()
 
     ClassReader(File("String.class").readBytes())
+        .accept(ClassWriter(ClassWriter.COMPUTE_FRAMES), 0)
+
 
     proc.detach()
 }
