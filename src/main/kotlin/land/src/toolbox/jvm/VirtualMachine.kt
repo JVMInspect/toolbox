@@ -133,7 +133,9 @@ class VirtualMachine(private val process: RemoteProcess) : Scope {
         }
     }
 
-    fun is64Bit() = process.is64Bit()
+    val is64Bit by lazy {
+        process.is64Bit()
+    }
 
     private fun symbol(name: String): Long =
         unsafe.getLong(Pointer.nativeValue(symbols.lookup(name)))
