@@ -48,6 +48,7 @@ class KlassDumper(
 
     fun writeFieldInfos() {
         val fields = ik.javaFieldInfos
+        println("fields count: ${fields.size}")
         buf.writeShort(fields.size)
         fields.forEachIndexed { index, info ->
             writeFieldInfo(info, index)
@@ -76,6 +77,8 @@ class KlassDumper(
             ++attributesCount
         }
 
+        println("attributes count for field $index: $attributesCount")
+
         buf.writeShort(attributesCount)
 
         if (field.initialValueIndex.toInt() != 0) {
@@ -96,6 +99,7 @@ class KlassDumper(
 
     fun writeAttributeNameIndex(name: String) {
         val attributeNameIndex = pool.getUtf8SymbolIndex(name)
+        //println("attribute name index for $name is $attributeNameIndex")
         buf.writeShort(attributeNameIndex)
     }
 
@@ -115,9 +119,9 @@ class KlassDumper(
         if (ik.sourceDebugExtension != null) {
             ++attributeCount
         }
-        if (innerClasses.length > 0) {
-            ++attributeCount
-        }
+        //if (innerClasses.length > 0) {
+        //    ++attributeCount
+        //}
         if (annotations != null) {
             ++attributeCount
         }
@@ -154,10 +158,10 @@ class KlassDumper(
             println("writing source file debug extension")
             writeSourceDebugExtensionAttribute()
         }
-        if (innerClasses.length > 0) {
-            println("writing ${innerClasses.length} inner classes")
-            writeInnerClassesAttribute(innerClasses)
-        }
+        //if (innerClasses.length > 0) {
+        //    println("writing ${innerClasses.length} inner classes")
+        //    writeInnerClassesAttribute(innerClasses)
+        //}
         if (annotations != null) {
             println("writing ${annotations.length} class annotations")
             writeAnnotationsAttribute("RuntimeVisibleAnnotations", annotations)
@@ -412,7 +416,7 @@ class KlassDumper(
 
     fun writeAnnotationsAttribute(attributeName: String, annotations: Array<Byte>) {
         writeAttributeNameIndex(attributeName)
-        buf.writeShort(annotations.length)
+        buf.writeInt(annotations.length)
         buf.write(annotations.bytes)
     }
 
