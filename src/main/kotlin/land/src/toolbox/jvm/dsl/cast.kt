@@ -29,7 +29,7 @@ class CastDelegate<S : Struct>(
         private val oopType: KClass<O>
     ) : Scope by scope, Factory<O> {
         @Suppress("Unchecked_Cast")
-        override fun invoke(): O? = oops(address, oopType) as? O?
+        override fun invoke(): O? = oops(address, oopType, true) as? O?
     }
 
     private val factory: Factory<S>? by lazy {
