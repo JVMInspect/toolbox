@@ -12,9 +12,15 @@ typealias StructAndFieldName = Pair<KClass<*>, String>
 class Fields(scope: Scope) : Scope by scope {
     private val cache = mutableMapOf<StructAndFieldName, Field?>()
 
-    private fun supers(baseType: KClass<*>) = baseType.allSupertypes
-        .mapNotNull { it.classifier as? KClass<*> }
-        .filter { structs.isStruct(it) && it != Struct::class }
+    private fun supers(baseType: KClass<*>): List<KClass<*>> {
+        val value = mutableListOf<KClass<*>>()
+        var type: Class<*> = baseType.java.superclass
+        while (structs.isStruct(type) && type != Struct::class.java) {
+            value += type.kotlin
+            type = type.superclass
+        }
+        return value
+    }
 
     operator fun invoke(struct: Struct, name: String) = cache.computeIfAbsent(struct::class to name) {
         struct.type.field(name) ?: supers(struct::class).firstNotNullOfOrNull {
