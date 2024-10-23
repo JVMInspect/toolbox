@@ -4,13 +4,14 @@ import land.src.toolbox.jvm.dsl.cast
 import land.src.toolbox.jvm.dsl.maybeNull
 import land.src.toolbox.jvm.dsl.nonNull
 import land.src.toolbox.jvm.primitive.Address
+import land.src.toolbox.jvm.primitive.Oop
 import land.src.toolbox.jvm.primitive.Struct
 
 private const val _lh_neutral_value = 0
 private const val _lh_array_tag_type_value = 0.inv()
 private const val _lh_array_tag_shift = (Integer.BYTES * 8) - 2
 
-open class Klass(address: Address) : Struct(address) {
+open class Klass(address: Address) : Struct(address), Oop {
     enum class Type {
         Klass,
         InstanceKlass,

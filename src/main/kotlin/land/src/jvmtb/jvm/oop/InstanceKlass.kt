@@ -1,21 +1,18 @@
 package land.src.jvmtb.jvm.oop
 
 import land.src.jvmtb.util.ClassConstants.*
-import land.src.toolbox.jvm.dsl.maybeNull
-import land.src.toolbox.jvm.dsl.maybeNullArray
-import land.src.toolbox.jvm.dsl.nonNull
-import land.src.toolbox.jvm.dsl.nonNullArray
+import land.src.toolbox.jvm.dsl.*
 import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Array
 import land.src.toolbox.jvm.primitive.ByteArray
-import land.src.toolbox.jvm.primitive.Oop
 
-class InstanceKlass(address: Address) : Klass(address), Oop {
+class InstanceKlass(address: Address) : Klass(address) {
     val majorVersion: Short get() = constantPool.majorVersion
     val minorVersion: Short get() = constantPool.minorVersion
     val constantPool: ConstantPool by nonNull("_constants")
 
     val superClass: Klass? by maybeNull("_super")
+
     val nestHostIndex: Short by lazy {
         val staticOopFieldCountAddress = address.base + type.field("_static_oop_field_count")!!.offsetOrAddress
         unsafe.getShort(staticOopFieldCountAddress - Short.SIZE_BYTES * 2)
@@ -68,17 +65,24 @@ class InstanceKlass(address: Address) : Klass(address), Oop {
     val localInterfaces: Array<InstanceKlass>? by maybeNullArray("_local_interfaces")
 
     val methods: Array<Method> by nonNullArray("_methods")
-    val fields: Array<Short> by nonNullArray("_fields")
+    val fieldData: Array<Short> by nonNullArray("_fields")
     val javaFieldsCount: Short by nonNull("_java_fields_count")
     val methodOrdering: Array<Int>? by maybeNullArray("_method_ordering")
 
+    val accessFlagsOffset: Int by constant("FieldInfo::access_flags_offset")
+    val nameIndexOffset: Int by constant("FieldInfo::name_index_offset")
+    val signatureIndexOffset: Int by constant("FieldInfo::signature_index_offset")
+    val initialValueIndexOffset: Int by constant("FieldInfo::initval_index_offset")
+    val lowPackedOffset: Int by constant("FieldInfo::low_packed_offset")
+    val highPackedOffset: Int by constant("FieldInfo::high_packed_offset")
+
     val fieldInfos: List<FieldInfo> by lazy {
         val info = mutableListOf<FieldInfo>()
-        var fieldCount = fields.length
+        var fieldCount = fieldData.length
 
         var index = 0
-        while (index < fields.length) {
-            val accessFlags: Short = fields[index]!!
+        while (index < fieldData.length) {
+            val accessFlags: Short = fieldData[index]!!
 
             if ((accessFlags.toInt() and JVM_ACC_FIELD_HAS_GENERIC_SIGNATURE) != 0) {
                 fieldCount--
@@ -88,13 +92,17 @@ class InstanceKlass(address: Address) : Klass(address), Oop {
 
         fieldCount /= 6
 
+        //check(fieldCount == javaFieldsCount.toInt()) {
+        //    "fieldCount ($fieldCount) != javaFieldsCount ($javaFieldsCount)"
+        //}
+
         for (i in 0 until fieldCount) {
-            val accessFlags: Short = fields[i * 6]!!
-            val nameIndex: Short = fields[i * 6 + 1]!!
-            val signatureIndex: Short = fields[i * 6 + 2]!!
-            val initialValIndex: Short = fields[i * 6 + 3]!!
-            val lowOffset: Short = fields[i * 6 + 4]!!
-            val highOffset: Short = fields[i * 6 + 5]!!
+            val accessFlags = fieldData[i * 6 + accessFlagsOffset]!!
+            val nameIndex = fieldData[i * 6 + nameIndexOffset]!!
+            val signatureIndex = fieldData[i * 6 + signatureIndexOffset]!!
+            val initialValIndex = fieldData[i * 6 + initialValueIndexOffset]!!
+            val lowOffset = fieldData[i * 6 + lowPackedOffset]!!
+            val highOffset = fieldData[i * 6 + highPackedOffset]!!
 
             info += FieldInfo(accessFlags, nameIndex, signatureIndex, initialValIndex, lowOffset, highOffset)
         }
