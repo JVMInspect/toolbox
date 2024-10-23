@@ -4,25 +4,14 @@ import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Array
 import land.src.toolbox.jvm.Scope
 import land.src.toolbox.jvm.primitive.ByteArray
-import land.src.toolbox.jvm.primitive.Oop
-import land.src.toolbox.jvm.primitive.Struct
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
 import kotlin.reflect.KClass
-import kotlin.reflect.KType
-import kotlin.reflect.full.starProjectedType
-import kotlin.reflect.javaType
-import kotlin.reflect.jvm.jvmErasure
 
 private val ConstructorType = MethodType.methodType(
     Void.TYPE,
     Address::class.java,
     Array.ElementInfo::class.java
-)
-
-private val PrimitiveConstructorType = MethodType.methodType(
-    Void.TYPE,
-    Address::class.java
 )
 
 typealias ArrayAndElementTypes = Pair<KClass<*>, Array.ElementInfo>
@@ -35,6 +24,12 @@ class Arrays(scope: Scope) : Scope by scope {
     private class Factory<A : Array<*>>(arrayType: KClass<*>, private val elementInfo: Array.ElementInfo) {
         private val handle = MethodHandles.lookup()
             .findConstructor(arrayType.java, ConstructorType)
+
+        init {
+            require(arrayType != Array::class || elementInfo.type != Array::class) {
+                "Use a primitive array such as ByteArray for the element type of nested arrays."
+            }
+        }
 
         @Suppress("Unchecked_Cast")
         operator fun invoke(address: Address): A = handle(address, elementInfo) as A
