@@ -18,6 +18,9 @@ class LinuxRemoteProcess(override val pid: Int) : RemoteProcess {
     override val unsafe = RemoteUnsafe(this)
 
     override fun attach() {
+        if (pid == current.pid)
+            return // we are already attached
+
         val result = LibC.ptrace(16, pid, null, null)
         if (result == -1) {
             error("ptrace attach failed")
@@ -26,6 +29,9 @@ class LinuxRemoteProcess(override val pid: Int) : RemoteProcess {
     }
 
     override fun detach() {
+        if (pid == current.pid)
+            return // no need to detach from self
+
         val result = LibC.ptrace(17, pid, null, null)
         if (result == -1) {
             error("ptrace detach failed")
