@@ -183,7 +183,33 @@ class ConstMethod(address: Address) : Struct(address) {
         codeEndOffset + if (isNative) 2 * pointerSize else 0
 
     // todo
-    val lineNumberTableLength: Int get() = 0
+    //val lineNumberTableLength: Int get() {
+    //    var length = 0
+    //    if (hasLineNumberTable) {
+    //        val address = Address(this, address.base + compressedLineNumberTableOffset)
+    //        val stream = CompressedLineNumberReadStream(address)
+    //        for (pair in stream) {
+    //            length++
+    //        }
+    //    }
+    //    return length
+    //}
+
+    val lineNumberTable: List<LineNumberTableElement> get() {
+        val value = mutableListOf<LineNumberTableElement>()
+        if (!hasLineNumberTable)
+            return value
+
+        val address = Address(this, address.base + compressedLineNumberTableOffset)
+        val stream = CompressedLineNumberReadStream(address)
+        for (element in stream) {
+            //println("lnte: ${element.line.toInt()} ${element.bci.toInt()}")
+            //println("lnte & 0xff: ${element.line.toInt() and 0xff} bci & 0xff: ${element.bci.toInt() and 0xff}")
+            value += element
+        }
+
+        return value
+    }
 
     val localVariableTableLengthOffset: Long get() =
         if (hasExceptionTable) exceptionTableOffset - Short.SIZE_BYTES

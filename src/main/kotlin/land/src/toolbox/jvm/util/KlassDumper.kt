@@ -34,7 +34,6 @@ class KlassDumper(
         val interfaces = ik.localInterfaces
         val numInterfaces = interfaces!!.length
         buf.writeShort(numInterfaces)
-        println("interfaces count $numInterfaces")
         for (index in 0 until numInterfaces) {
             val iik = interfaces[index]!!
             buf.writeShort(pool.getClassSymbolIndex(iik.name.string))
@@ -47,7 +46,6 @@ class KlassDumper(
 
     fun writeFieldInfos() {
         val fields = ik.javaFieldInfos
-        println("fields count: ${fields.size}")
         buf.writeShort(fields.size)
         fields.forEachIndexed { index, info ->
             writeFieldInfo(info, index)
@@ -75,8 +73,6 @@ class KlassDumper(
         if (typeAnnotations != null) {
             ++attributesCount
         }
-
-        println("attributes count for field $index: $attributesCount")
 
         buf.writeShort(attributesCount)
 
@@ -146,19 +142,15 @@ class KlassDumper(
         buf.writeShort(attributeCount)
 
         if (genericSignatureIndex != 0.toShort()) {
-            println("writing generic signature (${pool.getString(genericSignatureIndex.toInt())})")
             writeSignatureAttribute(genericSignatureIndex.toInt())
         }
         if (ik.sourceFileNameIndex != 0.toShort()) {
-            println("writing source file")
             writeSourceFileAttribute()
         }
         if (ik.sourceDebugExtension != null) {
-            println("writing source file debug extension")
             writeSourceDebugExtensionAttribute()
         }
         if (innerClasses.entries > 0) {
-            println("writing ${innerClasses.entries} inner classes")
             writeInnerClassesAttribute(innerClasses)
         }
         if (annotations != null) {
@@ -365,7 +357,6 @@ class KlassDumper(
             writeMethodParameterAttribute(constMethod)
         }
         if (genericSignatureIndex != 0) {
-            println("writing ${pool.tags[genericSignatureIndex]} signature for ${pool.getString(method.constMethod.nameIndex.toInt())}")
             writeSignatureAttribute(genericSignatureIndex)
         }
         if (annotations != null) {
@@ -392,11 +383,7 @@ class KlassDumper(
         buf.writeInt(size)
         buf.writeShort(checkedExceptionsLength)
 
-        println("writing $checkedExceptionsLength checked exceptions")
-
-        var index =0
         for (element in method.checkedExceptions) {
-            println("writing ${element.classCpIndex} index for checked exception ${index++}")
             buf.writeShort(element.classCpIndex.toInt())
         }
     }
@@ -456,15 +443,15 @@ class KlassDumper(
         }
     }
 
-    fun writeLineNumberTableAttribute(method: Method, lineNumberCount: Int) {
-        //writeAttributeNameIndex("LineNumberTable")
-        //buf.writeInt(2 + lineNumberCount * (2 + 2))
-        //buf.writeShort(lineNumberCount)
-        //val stream = CompressedLineNumberReadStream(method.constMethod.compressedLineNumberTable)
-        //for (pair in stream) {
-        //    buf.writeShort(pair.bci.toInt())
-        //    buf.writeShort(pair.line.toInt())
-        //}
+    fun writeLineNumberTableAttribute(constMethod: ConstMethod, lineNumberCount: Int) {
+        writeAttributeNameIndex("LineNumberTable")
+        buf.writeInt(2 + lineNumberCount * (2 + 2))
+        buf.writeShort(lineNumberCount)
+        val elements = constMethod.lineNumberTable
+        for (element in elements) {
+            buf.writeShort(element.bci.toInt())
+            buf.writeShort(element.line.toInt())
+        }
     }
 
     fun copyBytecode(method: Method) {
@@ -485,13 +472,13 @@ class KlassDumper(
         var attributesSize = 0
 
         // todo
-        //if (constMethod.hasLineNumberTable) {
-        //    lineNumberCount = constMethod.lineNumberTableEntries
-        //    if (lineNumberCount != 0) {
-        //        ++attributeCount
-        //        attributesSize += 2 + 4 + 2 + lineNumberCount * (2 + 2)
-        //    }
-        //}
+        if (constMethod.hasLineNumberTable) {
+            lineNumberCount = constMethod.lineNumberTable.size
+            if (lineNumberCount != 0) {
+                ++attributeCount
+                attributesSize += 2 + 4 + 2 + lineNumberCount * (2 + 2)
+            }
+        }
 
         if (constMethod.hasStackMapTable) {
             stackMapLength = constMethod.stackMapData!!.length
@@ -546,9 +533,9 @@ class KlassDumper(
         }
 
         buf.writeShort(attributeCount)
-        //if (lineNumberCount != 0) {
-        //    writeLineNumberTableAttribute(method, lineNumberCount)
-        //}
+        if (lineNumberCount != 0) {
+            writeLineNumberTableAttribute(constMethod, lineNumberCount)
+        }
         if (stackMapLength != 0) {
             writeStackMapTableAttribute(constMethod, stackMapLength)
         }
