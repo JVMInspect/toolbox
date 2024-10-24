@@ -29,8 +29,8 @@ class CodeRewriter(val method: ConstMethod) {
         FAST_AACCESS_0 to ALOAD_0,
         FAST_FACCESS_0 to ALOAD_0,
         FAST_ILOAD to ILOAD,
-        FAST_ILOAD2 to ILOAD,
-        FAST_ICALOAD to ILOAD,
+        FAST_ILOAD2 to -1,
+        FAST_ICALOAD to -1,
         FAST_INVOKEVFINAL to INVOKEVIRTUAL,
         FAST_LINEARSWITCH to LOOKUPSWITCH,
         FAST_BINARYSWITCH to LOOKUPSWITCH,
@@ -61,13 +61,14 @@ class CodeRewriter(val method: ConstMethod) {
             RET, BIPUSH, NEWARRAY, LDC -> 1
 
             in IFEQ..IF_ACMPNE,
+            in GETSTATIC..INVOKEINTERFACE,
             IFNULL, IFNONNULL,
             SIPUSH, IINC, LDC_W, LDC2_W,
             ANEWARRAY, CHECKCAST, INSTANCEOF, NEW, GOTO, JSR -> 2
 
             MULTIANEWARRAY -> 3
 
-            GOTO_W, JSR_W -> 4
+            GOTO_W, JSR_W, INVOKEDYNAMIC -> 4
 
             else -> 0
         }
@@ -102,85 +103,64 @@ class CodeRewriter(val method: ConstMethod) {
     }
 
     val rewrittenCode: ByteArray by lazy rewrittenCode@{
-
         var bci = 0
         val code = method.code
         val rewritten = code.copyOf(code.size)
         val constantPool = method.constants
         val cache = constantPool.cache
 
-        //println("rewriting ${method.constants.getString(method.nameIndex.toInt())}")
-
         while (bci < code.size) {
             val jvm = code[bci].toInt() and 0xff
             val java = java(jvm)
-            val operands = operands(jvm)
+            val operands = operands(java)
             rewritten[bci] = (java and 0xff).toByte()
 
             when {
                 jvm == FAST_ILOAD2 -> {
                     rewritten[bci + 2] = ILOAD.toByte()
                     bci += 3
-                    //println("handled FAST_ILOAD2 (bci: ${bci - 1}, jvm: $jvm, java: $java)")
                 }
                 jvm == FAST_ICALOAD -> {
                     rewritten[bci + 2] = CALOAD.toByte()
                     bci += 3
-
-                    //println("handled FAST_ICALOAD (bci: ${bci - 1}, jvm: $jvm, java: $java)")
                 }
                 jvm in FAST_AGETFIELD..FAST_SPUTFIELD -> {
                     val index = readShort(code, bci + 1, false)
                     val refIndex = cache[index.toInt()].cpIndex.toShort()
                     writeShort(rewritten, bci + 1, refIndex, true)
-                    bci += 2
-                    //println("handled FAST_AGETFIELD..FAST_SPUTFIELD (bci: ${bci - 1}, jvm: $jvm, java: $java)")
                 }
                 jvm == FAST_IACCESS_0 || jvm == FAST_AACCESS_0 -> {
                     rewritten[bci + 1] = GETFIELD.toByte()
                     val index = readShort(code, bci + 2, false)
                     val refIndex = cache[index.toInt()].cpIndex.toShort()
                     writeShort(rewritten, bci + 2, refIndex, true)
-                    bci += 3
-                    //println("handled FAST_IACCESS_0..FAST_AACCESS_0 (bci: ${bci - 1}, jvm: $jvm, java: $java)")
                 }
                 jvm == FAST_ALDC -> {
                     val index = (code[bci + 1].toInt() and 0xff).toShort()
                     rewritten[bci + 1] = cache.referenceMap[index.toInt()]?.toByte()!!
-                    bci++
-                    //println("handled FAST_ALDC (bci: ${bci - 1}, jvm: $jvm, java: $java)")
                 }
                 jvm == FAST_ALDC_W -> {
                     val index = readShort(code, bci + 1, false)
                     val refIndex = cache.referenceMap[index.toInt()]!!
                     writeShort(rewritten, bci + 1, refIndex, true)
-                    bci += 2
-                    //println("handled FAST_ALDC_W (bci: ${bci - 1}, jvm: $jvm, java: $java)")
                 }
                 jvm == INVOKEHANDLE -> {
                     val index = readShort(code, bci + 1, false)
                     val refIndex = constantPool.getRefIndex(index)
                     writeShort(rewritten, bci + 1, refIndex, true)
-                    //println("handled INVOKEHANDLE (bci: ${bci - 1}, jvm: $jvm, java: $java)")
-                    bci += 2
                 }
                 isMemberAccess(java) -> {
                     val index = readShort(code, bci + 1, false)
                     val refIndex = constantPool.cache[index.toInt()].cpIndex.toShort()
                     writeShort(rewritten, bci + 1, refIndex, true)
-                    //println("handled isMemberAccess (bci: ${bci - 1}, jvm: $jvm, java: $java)")
-
-                    bci += 2
                 }
                 java == LOOKUPSWITCH -> {
-                    val originalBci = bci - 1
                     bci += 4 - (bci and 3) + 4
                     val pairs = readShort(code, bci, true)
                     bci += 4 + pairs * 8
                     if (jvm == FAST_LINEARSWITCH || jvm == FAST_BINARYSWITCH) {
                         bci-- // todo() figure out why this is needed
                     }
-                    //println("handled LOOKUPSWITCH (bci: ${originalBci}, jvm: $jvm, java: $java)")
                 }
                 java == TABLESWITCH -> {
                     bci += 4 - (bci and 3) + 4
@@ -191,17 +171,12 @@ class CodeRewriter(val method: ConstMethod) {
                     val count = high - low + 1
                     bci += count * 4
                     bci -= 1
-
-                    //println("handled TABLESWITCH (bci: ${bci - 1}, jvm: $jvm, java: $java)")
                 }
                 java == INVOKEDYNAMIC -> {
                     val index = readShort(code, bci + 1, false).inv()
                     val actual = constantPool.cache[index.toInt()].cpIndex
                     writeShort(rewritten, bci + 1, actual.toShort(), true)
                     writeShort(rewritten, bci + 3, 0, true)
-                    bci += 4
-
-                    //println("handled INVOKEDYNAMIC")
                 }
                 java == WIDE -> {
                     val opcode = code[bci + 1].toInt() and 0xff
@@ -210,15 +185,10 @@ class CodeRewriter(val method: ConstMethod) {
                         IINC -> 4
                         else -> 2
                     }
-
-                    //println("handled WIDE (bci: ${bci - 1}, jvm: $jvm, java: $java)")
-                }
-                else -> {
-                    //println("handled opcode: $java, $jvm, operands: $operands, bci: $bci")
-                    bci += operands
                 }
             }
 
+            bci += operands
             bci++
         }
 
