@@ -178,7 +178,7 @@ class CodeRewriter(val method: ConstMethod) {
                     val pairs = readShort(code, bci, true)
                     bci += 4 + pairs * 8
                     if (jvm == FAST_LINEARSWITCH || jvm == FAST_BINARYSWITCH) {
-                        bci--
+                        bci-- // todo() figure out why this is needed
                     }
                     println("handled LOOKUPSWITCH (bci: ${originalBci}, jvm: $jvm, java: $java)")
                 }

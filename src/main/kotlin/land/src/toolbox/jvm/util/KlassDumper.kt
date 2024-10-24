@@ -19,8 +19,8 @@ class KlassDumper(
 
     fun writeClassFileFormat() {
         buf.writeInt(0xCAFEBABE.toInt())
-        buf.writeShort(ik.majorVersion.toInt())
         buf.writeShort(ik.minorVersion.toInt())
+        buf.writeShort(ik.majorVersion.toInt())
 
         pool.buildIndices()
 
