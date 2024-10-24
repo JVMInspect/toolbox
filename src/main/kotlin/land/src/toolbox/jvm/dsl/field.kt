@@ -145,7 +145,7 @@ class FieldDelegate<V : Any>(
 ) : NullableFieldDelegate<V>(struct, type, location) {
     override operator fun getValue(struct: Struct, property: KProperty<*>): V =
         super.getValue(struct, property)
-            ?: throw NullPointerException("${struct.typeName}#$location")
+            ?: throw NullPointerException("${struct.type.name}#$location")
 }
 
 fun Struct.offset(prop: KProperty0<*>) =
