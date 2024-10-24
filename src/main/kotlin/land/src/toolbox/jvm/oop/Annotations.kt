@@ -1,25 +1,23 @@
 package land.src.toolbox.jvm.oop
 
+import land.src.toolbox.jvm.dsl.maybeNull
+import land.src.toolbox.jvm.dsl.maybeNullArray
 import land.src.toolbox.jvm.primitive.Array
 import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.ByteArray
 import land.src.toolbox.jvm.primitive.Struct
 
 class Annotations(address: Address) : Struct(address) {
-    val classAnnotations: Array<Byte>? by lazy {
-        val classAnnotationsArrayAddress = unsafe.getAddress(address.base)
-        arrays(classAnnotationsArrayAddress, false)
+    val classAnnotations: Array<Byte>? by maybeNullArray {
+        address(address.base)
     }
-    val fieldsAnnotations: Array<ByteArray>? by lazy {
-        val fieldsAnnotationsArrayAddress = unsafe.getAddress(address.base + (pointerSize))
-        arrays(fieldsAnnotationsArrayAddress, false)
+    val fieldsAnnotations: Array<ByteArray>? by maybeNullArray {
+        address(address.base + pointerSize)
     }
-    val classTypeAnnotations: Array<Byte>? by lazy {
-        val classTypeAnnotationsArrayAddress = unsafe.getAddress(address.base + (pointerSize * 2))
-        arrays(classTypeAnnotationsArrayAddress, false)
+    val classTypeAnnotations: Array<Byte>? by maybeNullArray {
+        address(address.base + pointerSize * 2)
     }
-    val fieldsTypeAnnotations: Array<ByteArray>? by lazy {
-        val fieldsTypeAnnotationsArrayAddress = unsafe.getAddress(address.base + (pointerSize * 3))
-        arrays(fieldsTypeAnnotationsArrayAddress, false)
+    val fieldsTypeAnnotations: Array<ByteArray>? by maybeNullArray {
+        address(address.base + pointerSize * 3)
     }
 }
