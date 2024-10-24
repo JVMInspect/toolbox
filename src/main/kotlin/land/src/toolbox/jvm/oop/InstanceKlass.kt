@@ -48,25 +48,16 @@ class InstanceKlass(address: Address) : Klass(address) {
         unsafe.getString(unsafe.getAddress(sourceDebugExtensionAddress))
     }
 
+    val sourceFileNameIndex: Short get() = constantPool.sourceFileNameIndex
     val genericSignatureIndex: Short get() = constantPool.genericSignatureIndex
-    val sourceFileNameIndex: Short get() = constantPool.sourceFileNameIndex//Symbol? by nullableStruct("_source_file_name")
 
-    val _annotations: Annotations? by lazy {
-        val annotationsAddress = unsafe.getAddress(address.base + type.field("_annotations")!!.offsetOrAddress)
-        Annotations(Address(this, annotationsAddress))
-    }
-
-    val annotations: Array<Byte>? get() = _annotations!!.classAnnotations
-    val typeAnnotations: Array<Byte>? get() = _annotations!!.classTypeAnnotations
-    val fieldsAnnotations: Array<ByteArray>? get() = _annotations!!.fieldsAnnotations
-    val fieldsTypeAnnotations: Array<ByteArray>? get() = _annotations!!.fieldsTypeAnnotations
+    val annotations: Annotations? by maybeNull("_annotations")
 
     val innerClasses: Array<Short>? by maybeNullArray("_inner_classes")
     val localInterfaces: Array<InstanceKlass>? by maybeNullArray("_local_interfaces")
 
     val methods: Array<Method> by nonNullArray("_methods")
     val fieldData: Array<Short> by nonNullArray("_fields")
-    val javaFieldsCount: Short by nonNull("_java_fields_count")
     val methodOrdering: Array<Int>? by maybeNullArray("_method_ordering")
 
     val accessFlagsOffset: Int by constant("FieldInfo::access_flags_offset")
@@ -75,6 +66,11 @@ class InstanceKlass(address: Address) : Klass(address) {
     val initialValueIndexOffset: Int by constant("FieldInfo::initval_index_offset")
     val lowPackedOffset: Int by constant("FieldInfo::low_packed_offset")
     val highPackedOffset: Int by constant("FieldInfo::high_packed_offset")
+    val miscFlags: Short by nonNull("_misc_flags")
+
+    fun isFlagSet(flag: InstanceKlassFlag): Boolean {
+        return (miscFlags.toInt() and flag.bit(this)) != 0
+    }
 
     val fieldInfos: List<FieldInfo> by lazy {
         val info = mutableListOf<FieldInfo>()
@@ -91,10 +87,6 @@ class InstanceKlass(address: Address) : Klass(address) {
         }
 
         fieldCount /= 6
-
-        //check(fieldCount == javaFieldsCount.toInt()) {
-        //    "fieldCount ($fieldCount) != javaFieldsCount ($javaFieldsCount)"
-        //}
 
         for (i in 0 until fieldCount) {
             val accessFlags = fieldData[i * 6 + accessFlagsOffset]!!

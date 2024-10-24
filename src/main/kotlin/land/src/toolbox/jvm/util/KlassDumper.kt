@@ -53,8 +53,8 @@ class KlassDumper(
     }
 
     fun writeFieldInfo(field: FieldInfo, index: Int) {
-        val annotations = ik.fieldsAnnotations?.get(index)
-        val typeAnnotations = ik.fieldsTypeAnnotations?.get(index)
+        val annotations = ik.annotations?.fieldsAnnotations?.get(index)
+        val typeAnnotations = ik.annotations?.fieldsTypeAnnotations?.get(index)
 
         buf.writeShort(field.accessFlags.toInt() and JVM_RECOGNIZED_FIELD_MODIFIERS)
         buf.writeShort(field.nameIndex.toInt())
@@ -94,15 +94,14 @@ class KlassDumper(
 
     fun writeAttributeNameIndex(name: String) {
         val attributeNameIndex = pool.getUtf8SymbolIndex(name)
-        //println("attribute name index for $name is $attributeNameIndex")
         buf.writeShort(attributeNameIndex)
     }
 
     fun writeClassAttributes() {
         val innerClasses = InnerClassesIterator(scope, ik)
         val genericSignatureIndex = ik.genericSignatureIndex
-        val annotations = ik.annotations
-        val typeAnnotations = ik.typeAnnotations
+        val annotations = ik.annotations?.classAnnotations
+        val typeAnnotations = ik.annotations?.classTypeAnnotations
 
         var attributeCount = 0
         if (genericSignatureIndex != 0.toShort()) {
@@ -280,23 +279,22 @@ class KlassDumper(
     }
 
     fun writeBootstrapMethodAttribute() {
-        val operands = ik.constantPool.operands!!
         writeAttributeNameIndex("BootstrapMethods")
         val numBootstrapMethods = pool.operandArrayLength()
         var length = Short.SIZE_BYTES
         for (index in 0 until numBootstrapMethods) {
-            val numBootstrapArguments = pool.operandArgumentCount(index)//0 // TODO cpool()->operand_argument_count_at(n);
+            val numBootstrapArguments = pool.operandArgumentCount(index)
             length += 2 + 2 + (2 * numBootstrapArguments)
         }
         buf.writeInt(length)
         buf.writeShort(numBootstrapMethods)
         for (index in 0 until numBootstrapMethods) {
-            val bootstrapMethodRef = pool.operandBootstrapMethodRefIndex(index) //0 // TODO cpool()->operand_bootstrap_method_ref_index_at(n);
-            val numBootstrapArguments = pool.operandArgumentCount(index)//0 // TODO cpool()->operand_argument_count_at(n);
+            val bootstrapMethodRef = pool.operandBootstrapMethodRefIndex(index)
+            val numBootstrapArguments = pool.operandArgumentCount(index)
             buf.writeShort(bootstrapMethodRef)
             buf.writeShort(numBootstrapArguments)
             for (argIndex in 0 until numBootstrapArguments) {
-                val bootstrapArgument = pool.operandArgumentIndex(index, argIndex) //0 // TODO cpool()->operand_argument_index_at(n, arg);
+                val bootstrapArgument = pool.operandArgumentIndex(index, argIndex)
                 buf.writeShort(bootstrapArgument)
             }
         }
