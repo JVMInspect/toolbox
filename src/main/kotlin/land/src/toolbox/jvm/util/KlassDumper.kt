@@ -26,7 +26,6 @@ class KlassDumper(
 
         buf.write(pool.bytes)
 
-
         buf.writeShort(ik.accessFlags and JVM_RECOGNIZED_CLASS_MODIFIERS)
         buf.writeShort(pool.getClassSymbolIndex(ik.name.string))
         val superIndex = if (ik.superClass == null) 0 else pool.getClassSymbolIndex(ik.superClass!!.name.string)

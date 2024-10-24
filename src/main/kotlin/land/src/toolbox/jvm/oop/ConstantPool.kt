@@ -23,7 +23,6 @@ class ConstantPool(address: Address) : Struct(address), Oop {
     val resolvedKlasses: Array<Klass> by nonNullArray("_resolved_klasses")
     val sourceFileNameIndex: Short by nonNull("_source_file_name_index")
     val refEntries = mutableListOf<Short>()
-    val refObject = mutableMapOf<Short, Short>()
 
     val dataBase by lazy {
         address.base + vm.type("ConstantPool").size
@@ -34,8 +33,6 @@ class ConstantPool(address: Address) : Struct(address), Oop {
     }
 
     fun getRefIndex(index: Short) = refEntries[index.toInt()]
-
-    fun getStringIndex(index: Short) = refObject[index]
 
     val bytes by lazy {
         val bos = ByteArrayOutputStream()
@@ -286,8 +283,8 @@ class ConstantPool(address: Address) : Struct(address), Oop {
     private var classSymbolMap = mutableMapOf<String, Int>()
 
     fun buildIndices() {
-        var stringCount: Short = 0
-        for (index in 1 until length) {
+        var index = 1
+        while (index < length) {
             val tag = tags[index]!!
             when (tag.toInt()) {
                 JVM_CONSTANT_Utf8 -> {
@@ -307,13 +304,12 @@ class ConstantPool(address: Address) : Struct(address), Oop {
                     refEntries += index.toShort()
                 }
 
-                JVM_CONSTANT_String,
-                JVM_CONSTANT_MethodHandle,
-                JVM_CONSTANT_MethodType -> {
-                    println("put ref object $stringCount ($index)")
-                    refObject[stringCount++] = index.toShort()
+                JVM_CONSTANT_Long,
+                JVM_CONSTANT_Double -> {
+                    index++
                 }
             }
+            index++
         }
     }
 
