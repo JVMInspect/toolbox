@@ -105,7 +105,7 @@ class CodeRewriter(val method: ConstMethod) {
 
         var bci = 0
         val code = method.code
-        val rewritten = ByteArray(code.size)
+        val rewritten = code.copyOf(code.size)
         val constantPool = method.constants
         val cache = constantPool.cache
 
@@ -116,14 +116,6 @@ class CodeRewriter(val method: ConstMethod) {
             val java = java(jvm)
             val operands = operands(jvm)
             rewritten[bci] = (java and 0xff).toByte()
-
-            //if (0 > operands) {
-            //    error("operands: $operands")
-            //}
-
-            //bci++
-
-            //println("bci: $bci, java: $java, jvm: $jvm")
 
             when {
                 jvm == FAST_ILOAD2 -> {
