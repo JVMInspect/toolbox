@@ -108,7 +108,7 @@ class ConstMethod(address: Address) : Struct(address) {
     val methodParametersOffset: Long get() {
         val offset = methodParametersLengthOffset
         val length = methodParametersLength
-        return offset - length * 4 // todo: size
+        return offset - length * structs.sizeof(MethodParametersElement::class)
     }
 
     val methodParameters: List<MethodParametersElement> get() {
@@ -136,7 +136,7 @@ class ConstMethod(address: Address) : Struct(address) {
     val exceptionTableOffset: Long get() {
         val offset = exceptionTableLengthOffset
         val length = exceptionTableLength
-        return offset - length * 8 // todo: size
+        return offset - length * structs.sizeof(ExceptionTableElement::class)
     }
 
     val exceptionTable: List<ExceptionTableElement> get() {
@@ -163,7 +163,7 @@ class ConstMethod(address: Address) : Struct(address) {
     val checkedExceptionsOffset: Long get() {
         val offset = checkedExceptionsLengthOffset
         val length = checkedExceptionsLength
-        return offset - length * 2 // todo: size
+        return offset - length * structs.sizeof(CheckedExceptionElement::class)
     }
 
     val checkedExceptions: List<CheckedExceptionElement> get() {
@@ -198,7 +198,7 @@ class ConstMethod(address: Address) : Struct(address) {
     val localVariableTableOffset: Long get() {
         val offset = localVariableTableLengthOffset
         val length = localVariableTableLength
-        return offset - length * 12 // todo: size
+        return offset - length * structs.sizeof(LocalVariableTableElement::class)
     }
 
     val localVariableTable: List<LocalVariableTableElement> get() {

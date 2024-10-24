@@ -14,6 +14,7 @@ private val ConstructorType = MethodType.methodType(
 )
 
 class Structs(scope: Scope) : Scope by scope {
+    private val sizes = mutableMapOf<KClass<*>, Int>()
     private val factories = mutableMapOf<KClass<*>, Factory<*>>()
 
     private class Factory<S : Struct>(structType: KClass<*>) {
@@ -35,6 +36,10 @@ class Structs(scope: Scope) : Scope by scope {
 
     fun isStruct(type: KClass<*>): Boolean =
         isStruct(type.java)
+
+    fun sizeof(type: KClass<*>) = sizes.computeIfAbsent(type) {
+        vm.type(type.simpleName ?: error("Cannot get type name")).size
+    }
 
     operator fun invoke(address: Long, structType: KClass<*>): Struct? {
         if (address == 0L)
