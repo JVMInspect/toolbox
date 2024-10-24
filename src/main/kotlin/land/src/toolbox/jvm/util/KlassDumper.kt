@@ -390,11 +390,13 @@ class KlassDumper(
         val size = 2 + (2 * checkedExceptionsLength)
         writeAttributeNameIndex("Exceptions")
         buf.writeInt(size)
-        buf.writeInt(checkedExceptionsLength)
+        buf.writeShort(checkedExceptionsLength)
 
         println("writing $checkedExceptionsLength checked exceptions")
 
+        var index =0
         for (element in method.checkedExceptions) {
+            println("writing ${element.classCpIndex} index for checked exception ${index++}")
             buf.writeShort(element.classCpIndex.toInt())
         }
     }
@@ -465,13 +467,9 @@ class KlassDumper(
         //}
     }
 
-    // todo: write rewritten bytecode
     fun copyBytecode(method: Method) {
         val rewriter = CodeRewriter(method.constMethod)
         buf.write(rewriter.rewrittenCode)
-        //var s: String?
-        //val bytes = scope.unsafe.getMemory(method.address.base + method.constMethod.bytecodeOffset, method.constMethod.codeSize.toInt())
-        //buf.write(bytes)
     }
 
     @OptIn(ExperimentalStdlibApi::class)
@@ -565,7 +563,7 @@ class KlassDumper(
     fun writeLocalVariableTypeTableAttribute(constMethod: ConstMethod, localVariableTypeTableLength: Int) {
         writeAttributeNameIndex("LocalVariableTypeTable")
         buf.writeInt(2 + localVariableTypeTableLength * (2 + 2 + 2 + 2 + 2))
-        buf.writeInt(localVariableTypeTableLength)
+        buf.writeShort(localVariableTypeTableLength)
 
         for (element in constMethod.localVariableTable) {
             if (element.signatureCpIndex > 0.toShort()) {
@@ -581,7 +579,7 @@ class KlassDumper(
     fun writeLocalVariableTableAttribute(constMethod: ConstMethod, localVariableTableLength: Int) {
         writeAttributeNameIndex("LocalVariableTable")
         buf.writeInt(2 + localVariableTableLength * (2 + 2 + 2 + 2 + 2))
-        buf.writeInt(localVariableTableLength)
+        buf.writeShort(localVariableTableLength)
 
         for (element in constMethod.localVariableTable) {
             buf.writeShort(element.startBci.toInt())

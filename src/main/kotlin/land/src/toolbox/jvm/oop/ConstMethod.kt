@@ -173,6 +173,7 @@ class ConstMethod(address: Address) : Struct(address) {
         for (index in 0 until length) {
             val elementAddress = Address(this, address.base + offset)
             val element = CheckedExceptionElement(elementAddress)
+            value += element
             offset += element.type.size
         }
         return value
@@ -192,7 +193,7 @@ class ConstMethod(address: Address) : Struct(address) {
         else lastU2ElementOffset
 
     val localVariableTableLength: Short get() =
-        0//if (hasLocalVariableTable) shortAt(localVariableTableLengthOffset) else 0
+        if (hasLocalVariableTable) shortAt(localVariableTableLengthOffset) else 0
 
     val localVariableTableOffset: Long get() {
         val offset = localVariableTableLengthOffset
