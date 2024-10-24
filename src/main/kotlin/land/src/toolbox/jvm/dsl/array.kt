@@ -60,8 +60,8 @@ inline fun <reified E : Any, reified A : Array<E>> Struct.maybeNullArray(
 )
 
 inline fun <reified E : Any, reified A : Array<E>> Struct.maybeNullArray(
-    block: FieldLocationProviderScope.() -> FieldLocation<*>,
-    isElementPointer: Boolean = structs.isStruct(E::class)
+    isElementPointer: Boolean = structs.isStruct(E::class),
+    block: FieldLocationProviderScope.() -> FieldLocation<*>
 ) : NullableArrayFieldDelegate<E> {
     val provider = FieldLocationProvider(this)
     val location = block(provider)
@@ -86,8 +86,8 @@ inline fun <reified E : Any, reified A : Array<E>> Struct.nonNullArray(
 )
 
 inline fun <reified E : Any, reified A : Array<E>> Struct.nonNullArray(
-    block: FieldLocationProviderScope.() -> FieldLocation<*>,
-    isElementPointer: Boolean = structs.isStruct(E::class)
+    isElementPointer: Boolean = structs.isStruct(E::class),
+    block: FieldLocationProviderScope.() -> FieldLocation<*>
 ) : ArrayFieldDelegate<E> {
     val provider = FieldLocationProvider(this)
     val location = block(provider)
