@@ -292,9 +292,10 @@ class ConstantPool(address: Address) : Struct(address), Oop {
                     utf8SymbolMap[symbol.string] = index
                 }
 
-                JVM_CONSTANT_Class -> {
-                    val klass = getKlass(index)
-                    val klassName = klass.name.string
+                JVM_CONSTANT_Class,
+                JVM_CONSTANT_UnresolvedClass,
+                JVM_CONSTANT_UnresolvedClassInError -> {
+                    val klassName = getKlassNameAt(index).string
                     classSymbolMap[klassName] = index
                 }
 

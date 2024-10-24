@@ -37,7 +37,7 @@ class KlassDumper(
         println("interfaces count $numInterfaces")
         for (index in 0 until numInterfaces) {
             val iik = interfaces[index]!!
-            buf.writeShort(pool.getUtf8SymbolIndex(iik.name.string))
+            buf.writeShort(pool.getClassSymbolIndex(iik.name.string))
         }
 
         writeFieldInfos()

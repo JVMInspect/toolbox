@@ -131,7 +131,7 @@ class CodeRewriter(val method: ConstMethod) {
                 }
                 jvm in FAST_AGETFIELD..FAST_SPUTFIELD -> {
                     val index = readShort(code, bci + 1, false)
-                    val refIndex = constantPool.getRefIndex(index)
+                    val refIndex = cache[index.toInt()].cpIndex.toShort()
                     writeShort(rewritten, bci + 1, refIndex, true)
                     bci += 2
                     println("handled FAST_AGETFIELD..FAST_SPUTFIELD (bci: ${bci - 1}, jvm: $jvm, java: $java)")
@@ -139,7 +139,7 @@ class CodeRewriter(val method: ConstMethod) {
                 jvm == FAST_IACCESS_0 || jvm == FAST_AACCESS_0 -> {
                     rewritten[bci + 1] = GETFIELD.toByte()
                     val index = readShort(code, bci + 2, false)
-                    val refIndex = constantPool.getRefIndex(index)
+                    val refIndex = cache[index.toInt()].cpIndex.toShort()
                     writeShort(rewritten, bci + 2, refIndex, true)
                     bci += 3
                     println("handled FAST_IACCESS_0..FAST_AACCESS_0 (bci: ${bci - 1}, jvm: $jvm, java: $java)")
