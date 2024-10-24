@@ -107,6 +107,7 @@ class CodeRewriter(val method: ConstMethod) {
         val code = method.code
         val rewritten = ByteArray(code.size)
         val constantPool = method.constants
+        val cache = constantPool.cache
 
         println("rewriting ${method.constants.getString(method.nameIndex.toInt())}")
 
@@ -153,13 +154,13 @@ class CodeRewriter(val method: ConstMethod) {
                 }
                 jvm == FAST_ALDC -> {
                     val index = (code[bci + 1].toInt() and 0xff).toShort()
-                    rewritten[bci + 1] = constantPool.getStringIndex(index)!!.toByte()
+                    rewritten[bci + 1] = cache.referenceMap[index.toInt()]?.toByte()!!
                     bci++
                     println("handled FAST_ALDC (bci: ${bci - 1}, jvm: $jvm, java: $java)")
                 }
                 jvm == FAST_ALDC_W -> {
                     val index = readShort(code, bci + 1, false)
-                    val refIndex = constantPool.getStringIndex(index)!!
+                    val refIndex = cache.referenceMap[index.toInt()]!!
                     writeShort(rewritten, bci + 1, refIndex, true)
                     bci += 2
                     println("handled FAST_ALDC_W (bci: ${bci - 1}, jvm: $jvm, java: $java)")
