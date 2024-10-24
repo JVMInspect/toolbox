@@ -54,11 +54,11 @@ class CodeRewriter(val method: ConstMethod) {
             in ISTORE_0..LXOR,
             in I2L..DCMPG,
             in IRETURN..RETURN,
-            RET, ARRAYLENGTH, ATHROW, MONITORENTER, MONITOREXIT, BREAKPOINT -> 0
+            ARRAYLENGTH, ATHROW, MONITORENTER, MONITOREXIT, BREAKPOINT -> 0
 
             in ILOAD..ALOAD,
             in ISTORE..ASTORE,
-            BIPUSH, NEWARRAY, LDC -> 1
+            RET, BIPUSH, NEWARRAY, LDC -> 1
 
             in IFEQ..IF_ACMPNE,
             IFNULL, IFNONNULL,
@@ -210,6 +210,16 @@ class CodeRewriter(val method: ConstMethod) {
                     bci += 4
 
                     println("handled INVOKEDYNAMIC")
+                }
+                java == WIDE -> {
+                    val opcode = code[bci + 1].toInt() and 0xff
+                    bci += 1 // skip opcode
+                    bci += when (opcode) {
+                        IINC -> 4
+                        else -> 2
+                    }
+
+                    println("handled WIDE (bci: ${bci - 1}, jvm: $jvm, java: $java)")
                 }
                 else -> {
                     println("handled opcode: $java, $jvm, operands: $operands, bci: $bci")
