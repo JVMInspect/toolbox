@@ -4,6 +4,7 @@ import land.src.toolbox.jvm.dsl.maybeNullArray
 import land.src.toolbox.jvm.dsl.nonNull
 import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Array
+import land.src.toolbox.jvm.primitive.Oop
 import land.src.toolbox.jvm.primitive.Struct
 
 class ConstMethod(address: Address) : Struct(address) {
@@ -21,6 +22,11 @@ class ConstMethod(address: Address) : Struct(address) {
 
     val codeSize: Short by nonNull("_code_size")
     val constMethodSize: Int by nonNull("_constMethod_size")
+
+    val bytecodeOffset: Long get() = type.size.toLong()
+    val codeEndOffset: Long get() = bytecodeOffset + codeSize
+
+    val isNative: Boolean get() = method.isNative
 
     val code by lazy {
         unsafe.getMemory(address.base + bytecodeOffset, codeSize.toInt())
@@ -59,7 +65,7 @@ class ConstMethod(address: Address) : Struct(address) {
         lastU2ElementOffset
 
     val genericSignatureIndex: Short get() =
-        shortAt(genericSignatureOffset)
+        if (hasGenericSignature) shortAt(genericSignatureOffset) else 0
 
     val methodAnnotationsOffset: Long get() =
         1
@@ -172,11 +178,6 @@ class ConstMethod(address: Address) : Struct(address) {
         return value
     }
 
-    val bytecodeOffset: Long get() = type.size.toLong()
-    val codeEndOffset: Long get() = bytecodeOffset + codeSize
-
-    val isNative: Boolean get() = method.isNative
-
     val compressedLineNumberTableOffset : Long get() =
         codeEndOffset + if (isNative) 2 * pointerSize else 0
 
@@ -190,8 +191,8 @@ class ConstMethod(address: Address) : Struct(address) {
         else if (hasGenericSignature) lastU2ElementOffset - Short.SIZE_BYTES
         else lastU2ElementOffset
 
-    // todo
-    val localVariableTableLength: Int get() = 0
+    val localVariableTableLength: Short get() =
+        0//if (hasLocalVariableTable) shortAt(localVariableTableLengthOffset) else 0
 
     val localVariableTableOffset: Long get() {
         val offset = localVariableTableLengthOffset

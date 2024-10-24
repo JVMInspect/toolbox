@@ -366,6 +366,7 @@ class KlassDumper(
             writeMethodParameterAttribute(constMethod)
         }
         if (genericSignatureIndex != 0) {
+            println("writing ${pool.tags[genericSignatureIndex]} signature for ${pool.getString(method.constMethod.nameIndex.toInt())}")
             writeSignatureAttribute(genericSignatureIndex)
         }
         if (annotations != null) {
@@ -467,9 +468,11 @@ class KlassDumper(
 
     // todo: write rewritten bytecode
     fun copyBytecode(method: Method) {
-        var s: String?
-        val bytes = scope.unsafe.getMemory(method.address.base + method.constMethod.bytecodeOffset, method.constMethod.codeSize.toInt())
-        buf.write(bytes)
+        val rewriter = CodeRewriter(method.constMethod)
+        buf.write(rewriter.rewrittenCode)
+        //var s: String?
+        //val bytes = scope.unsafe.getMemory(method.address.base + method.constMethod.bytecodeOffset, method.constMethod.codeSize.toInt())
+        //buf.write(bytes)
     }
 
     @OptIn(ExperimentalStdlibApi::class)
