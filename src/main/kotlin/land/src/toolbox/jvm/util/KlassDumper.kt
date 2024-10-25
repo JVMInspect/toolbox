@@ -423,7 +423,7 @@ class KlassDumper(
 
         buf.writeShort(numMethods - numOverpass)
 
-        val methodOrder = IntArray(numMethods)
+        val methodOrder = arrayOfNulls<Int>(numMethods)
 
         if (ik.methodOrdering != null) {
             for (index in 0 until numMethods) {
