@@ -1,11 +1,11 @@
 package land.src.toolbox.jvm
 
-import land.src.toolbox.remote.RemoteProcess
-import land.src.toolbox.remote.impl.WindowsRemoteProcess
+import land.src.toolbox.process.ProcessHandle
+import land.src.toolbox.process.impl.WindowsProcessHandle
 
-class Symbols(process: RemoteProcess) {
+class Symbols(process: ProcessHandle) {
     private val libJvmName =
-        if (process is WindowsRemoteProcess) "jvm.dll"
+        if (process is WindowsProcessHandle) "jvm.dll"
         else "libjvm.so"
 
     private val libJvm =

@@ -2,7 +2,6 @@ package land.src.toolbox.jvm.oop
 
 import land.src.toolbox.jvm.Scope
 import land.src.toolbox.jvm.primitive.Address
-import land.src.toolbox.jvm.util.Unsigned5
 import land.src.toolbox.jvm.util.Unsigned5.readUint
 
 
@@ -24,7 +23,7 @@ class CompressedLineNumberReadStream(val address: Address) : Iterator<LineNumber
 
     fun readSignedInt(): Int {
         val int = readUint(address, position) {
-            this.position = position
+            this.position = it
             position
         }
         //val int = unsafe.getInt(address.base + position) and 0xff

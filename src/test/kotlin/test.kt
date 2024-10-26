@@ -1,8 +1,11 @@
 import land.src.toolbox.jvm.Universe
+import land.src.toolbox.jvm.VMFlags
 import land.src.toolbox.jvm.util.KlassDumper
 import land.src.toolbox.jvm.VirtualMachine
-import land.src.toolbox.remote.impl.LinuxRemoteProcess
-import land.src.toolbox.remote.impl.WindowsRemoteProcess
+import land.src.toolbox.jvm.oop.OopDesc
+//import land.src.toolbox.local.mirror
+import land.src.toolbox.process.impl.LinuxProcessHandle
+import land.src.toolbox.process.impl.WindowsProcessHandle
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import java.io.DataOutputStream
@@ -11,8 +14,8 @@ import java.io.File
 fun main() {
     val proc = System.getProperty("os.name").let {
         when {
-            it.contains("linux", ignoreCase = true) -> LinuxRemoteProcess.current
-            it.contains("windows", ignoreCase = true) -> WindowsRemoteProcess.current
+            it.contains("linux", ignoreCase = true) -> LinuxProcessHandle.current
+            it.contains("windows", ignoreCase = true) -> WindowsProcessHandle.current
             else -> error("Unsupported OS: $it")
         }
     }
@@ -21,8 +24,17 @@ fun main() {
     val vm = VirtualMachine(proc)
 
     //vm.print()
-    val universe = Universe(vm)
+
+    val flags: VMFlags = vm.structs(-1)!!
+    for (flag in flags.flags) {
+        println(flag)
+    }
+
+    val universe = vm.globals.universe
     val stringKlass = universe.instanceKlass("java/lang/String")!!
+
+    //val mirror = stringKlass.mirror
+    //println(mirror)
 
     val fileOutput = DataOutputStream(File("String.class").outputStream())
     val klassDumper = KlassDumper(vm, stringKlass, fileOutput)

@@ -1,7 +1,7 @@
-package land.src.toolbox.remote
+package land.src.toolbox.process
 
 import com.sun.jna.Pointer
 
-interface RemoteLibrary {
+interface LibraryHandle {
     fun findProcedure(procedure: String): Pointer?
 }

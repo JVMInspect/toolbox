@@ -1,4 +1,4 @@
-package land.src.toolbox.remote.impl
+package land.src.toolbox.process.impl
 
 import com.sun.jna.Native.POINTER_SIZE
 import com.sun.jna.Pointer
@@ -6,10 +6,10 @@ import com.sun.jna.platform.win32.*
 import com.sun.jna.platform.win32.WinDef.*
 import com.sun.jna.platform.win32.WinNT.HANDLE
 import com.sun.jna.ptr.IntByReference
-import land.src.toolbox.remote.RemoteLibrary
-import land.src.toolbox.remote.RemoteProcess
-import land.src.toolbox.remote.RemoteProcessList
-import land.src.toolbox.remote.RemoteUnsafe
+import land.src.toolbox.process.LibraryHandle
+import land.src.toolbox.process.ProcessHandle
+import land.src.toolbox.process.ProcessHandles
+import land.src.toolbox.process.ProcessUnsafe
 import land.src.toolbox.util.Windows
 import java.io.File
 
@@ -19,9 +19,9 @@ private val kernel32 = Windows.Kernel32
 private const val MAX_PATH = 260
 private const val DONT_RESOLVE_DLL_REFERENCES = 0x1
 
-class WindowsRemoteProcess(private val handle: HANDLE) : RemoteProcess, AutoCloseable {
+class WindowsProcessHandle(private val handle: HANDLE, override val local: Boolean) : ProcessHandle, AutoCloseable {
     override val pid = kernel32.GetProcessId(handle)
-    override val unsafe = RemoteUnsafe(this)
+    override val unsafe = ProcessUnsafe(this)
     private val libraryHandles = mutableSetOf<HMODULE>()
 
     fun protect(address: Long, size: Long, protection: Int, block: () -> Unit) {
@@ -47,7 +47,7 @@ class WindowsRemoteProcess(private val handle: HANDLE) : RemoteProcess, AutoClos
         return written.value
     }
 
-    override fun findLibrary(library: String): RemoteLibrary? {
+    override fun findLibrary(library: String): LibraryHandle? {
         val needed = IntByReference()
         val modules = arrayOfNulls<HMODULE>(512)
         check(psapi.EnumProcessModules(handle, modules, 512 * POINTER_SIZE, needed)) {
@@ -65,7 +65,7 @@ class WindowsRemoteProcess(private val handle: HANDLE) : RemoteProcess, AutoClos
                 val lib = kernel32.LoadLibraryEx(path, null, DONT_RESOLVE_DLL_REFERENCES)
                 checkNotNull(lib) { "LoadLibraryEx" }
                 libraryHandles += lib
-                return WindowsRemoteLibrary(lib, moduleHandle)
+                return WindowsLibraryHandle(lib, moduleHandle)
             }
         }
         return null
@@ -92,12 +92,12 @@ class WindowsRemoteProcess(private val handle: HANDLE) : RemoteProcess, AutoClos
         closeHandle()
     }
 
-    companion object : RemoteProcessList {
-        override val remotes: Set<RemoteProcess>
+    companion object : ProcessHandles {
+        override val remote: Set<ProcessHandle>
             get() = getJavaProcesses()
 
-        val current: RemoteProcess
-            get() = WindowsRemoteProcess(kernel32.GetCurrentProcess())
+        override val current: ProcessHandle =
+            WindowsProcessHandle(kernel32.GetCurrentProcess(), true)
 
         private fun getActiveProcessIds(): IntArray {
             var size = 0
@@ -116,8 +116,8 @@ class WindowsRemoteProcess(private val handle: HANDLE) : RemoteProcess, AutoClos
             return out
         }
 
-        fun getJavaProcesses(): Set<RemoteProcess> {
-            val processes = mutableSetOf<RemoteProcess>()
+        fun getJavaProcesses(): Set<ProcessHandle> {
+            val processes = mutableSetOf<ProcessHandle>()
 
             for (processId in getActiveProcessIds()) {
                 val handle = kernel32.OpenProcess(0x38, false, processId) ?: continue
@@ -128,7 +128,7 @@ class WindowsRemoteProcess(private val handle: HANDLE) : RemoteProcess, AutoClos
                 val path = String(buffer, 0, length.value)
                 val name = File(path).name
                 if (!name.equals("java.exe") && !name.equals("javaw.exe")) continue
-                processes.add(WindowsRemoteProcess(handle))
+                processes.add(WindowsProcessHandle(handle, false))
             }
 
             return processes

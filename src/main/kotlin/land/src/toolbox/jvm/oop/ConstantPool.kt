@@ -48,32 +48,27 @@ class ConstantPool(address: Address) : Struct(address), Oop {
                     val symbol = getSymbol(index)
                     dos.writeShort(symbol.length)
                     dos.write(symbol.bytes)
-                    //println("written utf8 ${symbol.string} at index $index")
                 }
 
                 JVM_CONSTANT_Integer -> {
                     dos.writeByte(tag)
                     dos.writeInt(getInt(index))
-                    //println("written integer ${getInt(index)} at index $index")
                 }
 
                 JVM_CONSTANT_Float -> {
                     dos.writeByte(tag)
                     dos.writeFloat(getFloat(index))
-                    //println("written float ${getFloat(index)} at index $index")
                 }
 
                 JVM_CONSTANT_Long -> {
                     dos.writeByte(tag)
                     dos.writeLong(getLong(index))
-                    //println("written long ${getLong(index)} at index $index")
                     index++
                 }
 
                 JVM_CONSTANT_Double -> {
                     dos.writeByte(tag)
                     dos.writeDouble(getDouble(index))
-                    //println("written double ${getDouble(index)} at index $index")
                     index++
                 }
 
@@ -82,33 +77,22 @@ class ConstantPool(address: Address) : Struct(address), Oop {
                     val klass = getKlass(index)
                     val klassName = klass.name.string
                     dos.writeShort(getUtf8SymbolIndex(klassName))
-                    //println("written class $klassName at index $index")
                 }
 
                 JVM_CONSTANT_UnresolvedClass -> {
                     dos.writeByte(JVM_CONSTANT_Class)
                     dos.writeShort(getKlassNameIndex(index))
-                    //println("written unresolved class ${getKlassNameIndex(index)} at index $index")
-                    //val klass = getKlass(index)
-                    //val klassName = klass.name.string
-                    //dos.writeShort(getUtf8SymbolIndex(klassName))
                 }
 
                 JVM_CONSTANT_UnresolvedClassInError -> {
                     dos.writeByte(JVM_CONSTANT_Class)
                     dos.writeShort(getKlassNameIndex(index))
-                    //println("written unresolved class in error ${getKlassNameIndex(index)} at index $index")
-
-                    //val klass = getKlass(index)
-                    //val klassName = klass.name.string
-                    //dos.writeShort(getUtf8SymbolIndex(klassName))
                 }
 
                 JVM_CONSTANT_String -> {
                     dos.writeByte(tag)
                     val string = getString(index)
                     dos.writeShort(getUtf8SymbolIndex(string))
-                    //println("written string $string at index $index")
                 }
 
                 JVM_CONSTANT_Fieldref, JVM_CONSTANT_Methodref, JVM_CONSTANT_InterfaceMethodref, JVM_CONSTANT_NameAndType, JVM_CONSTANT_InvokeDynamic -> {
@@ -116,7 +100,6 @@ class ConstantPool(address: Address) : Struct(address), Oop {
                     val refIndex = getInt(index)
                     dos.writeShort(refIndex.low.toInt())
                     dos.writeShort(refIndex.high.toInt())
-                    //println("written reference (tag: $tag) $refIndex at index $index")
                 }
 
                 JVM_CONSTANT_MethodHandle -> {
@@ -126,30 +109,22 @@ class ConstantPool(address: Address) : Struct(address), Oop {
                     val refIndex = value.high.toInt()
                     dos.writeByte(refKind)
                     dos.writeShort(refIndex)
-
-                    //println("written methodHandle (value: $value, refKind: $refKind, refIndex: $refIndex) at index $index")
                 }
 
                 JVM_CONSTANT_MethodType -> {
                     dos.writeByte(tag)
                     val descriptorIndex = getInt(index)
                     dos.writeShort(descriptorIndex)
-
-                    //println("written methodType (descriptorIndex: $descriptorIndex) at index $index")
                 }
 
                 JVM_CONSTANT_ClassIndex -> {
                     dos.writeByte(JVM_CONSTANT_Class)
                     dos.writeShort(getInt(index))
-
-                    //println("written classIndex (index: ${getInt(index)}) at index $index")
                 }
 
                 JVM_CONSTANT_StringIndex -> {
                     dos.writeByte(JVM_CONSTANT_String)
                     dos.writeShort(getInt(index))
-
-                    //println("written stringIndex (index: ${getInt(index)}) at index $index")
                 }
 
                 else -> error("Unknown constant pool tag: $tag (index: $index, length: $length)")
@@ -233,7 +208,7 @@ class ConstantPool(address: Address) : Struct(address), Oop {
 
     val Int.low
         get() =
-            (this.toShort().toInt() and 0xffff).toShort()
+            (toShort().toInt() and 0xffff).toShort()
 
     val Int.high
         get() =

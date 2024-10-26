@@ -24,6 +24,7 @@ open class Klass(address: Address) : Struct(address), Oop {
     val nextLink: Klass? by maybeNull("_next_link")
 
     val layoutHelper: Int by nonNull("_layout_helper")
+    val classLoaderData: ClassLoaderData by nonNull("_class_loader_data")
 
     val accessFlags: Int by nonNull("_access_flags")
 

@@ -1,13 +1,10 @@
 package land.src.toolbox.jvm
 
-import land.src.toolbox.jvm.oop.ClassLoaderData
-import land.src.toolbox.jvm.oop.ClassLoaderDataGraph
-import land.src.toolbox.jvm.oop.InstanceKlass
-import land.src.toolbox.jvm.oop.Klass
+import land.src.toolbox.jvm.oop.*
 import java.util.LinkedList
 
 class Universe(val scope: Scope) {
-
+    @OptIn(ExperimentalStdlibApi::class)
     val loadedKlasses: LinkedList<Klass> by lazy {
         val result: LinkedList<Klass> = LinkedList()
 
@@ -15,6 +12,17 @@ class Universe(val scope: Scope) {
 
         var cld: ClassLoaderData? = graph.head
         while (cld != null) {
+            //val r = runCatching {
+            //    val loaderOop = cld!!.loader?.obj
+            //    println("loaderOop: ${loaderOop!!.toHexString()}")
+            //    val oopDesc = scope.structs<OopDesc>(loaderOop!!)
+            //    println("oopdesc: ${oopDesc!!.address.base.toHexString()}")
+            //    println(oopDesc!!.klass.name.string)
+            //}
+            //if (r.isFailure) {
+            //    r.exceptionOrNull()?.printStackTrace()
+            //}
+
             var klass: Klass? = cld.klasses
             while (klass != null) {
                 result.add(klass)

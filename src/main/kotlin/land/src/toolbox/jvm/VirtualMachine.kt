@@ -8,17 +8,20 @@ import land.src.toolbox.jvm.cache.Structs
 import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Field
 import land.src.toolbox.jvm.primitive.Type
-import land.src.toolbox.remote.RemoteProcess
+import land.src.toolbox.process.ProcessHandle
 import java.util.*
 
-class VirtualMachine(private val process: RemoteProcess) : Scope {
+class VirtualMachine(private val process: ProcessHandle) : Scope {
     private val symbols = Symbols(process)
     private val types = LinkedHashMap<String, Type>()
     private val constants = LinkedHashMap<String, Number>()
 
+    val isLocal = process.local
+
     override val vm = this
     override val version: VMVersion
     override val unsafe = process.unsafe
+    override val globals = Globals(this)
     override val oops = Oops(this)
     override val arrays = Arrays(this)
     override val structFields = Fields(this)

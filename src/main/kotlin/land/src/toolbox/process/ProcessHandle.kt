@@ -1,10 +1,11 @@
-package land.src.toolbox.remote
+package land.src.toolbox.process
 
 import com.sun.jna.Pointer
 
-interface RemoteProcess {
+interface ProcessHandle {
     val pid: Int
-    val unsafe: RemoteUnsafe
+    val local: Boolean
+    val unsafe: ProcessUnsafe
 
     fun attach() = Unit
     fun detach() = Unit
@@ -14,5 +15,5 @@ interface RemoteProcess {
     fun read(src: Pointer, dst: Pointer, size: Int): Int
     fun write(dst: Pointer, src: Pointer, size: Int): Int
 
-    fun findLibrary(library: String): RemoteLibrary?
+    fun findLibrary(library: String): LibraryHandle?
 }

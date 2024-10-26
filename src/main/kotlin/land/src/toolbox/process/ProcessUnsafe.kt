@@ -1,9 +1,9 @@
-package land.src.toolbox.remote
+package land.src.toolbox.process
 
 import com.sun.jna.Memory
 import land.src.toolbox.util.pointer
 
-class RemoteUnsafe(private val process: RemoteProcess) {
+class ProcessUnsafe(private val process: ProcessHandle) {
     private val memory = Memory(1024 * 1024L)
 
     fun getString(address: Long): String? {
