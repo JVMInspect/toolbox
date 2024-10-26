@@ -6,13 +6,19 @@ import land.src.toolbox.jvm.oop.InnerClassesIterator
 import land.src.toolbox.jvm.primitive.Array
 import java.io.DataOutputStream
 
+enum class DumpMode {
+    Full,
+    Minimal
+}
+
 /**
  * Port of the jvmtiClassFileReconstituter from jvm sources
  */
 class KlassDumper(
     val scope: Scope,
     val klass: Klass,
-    val buf: DataOutputStream
+    val buf: DataOutputStream,
+    val mode: DumpMode = DumpMode.Full
 ) {
     val ik = klass.instanceKlass
     val pool = ik.constantPool
@@ -53,18 +59,21 @@ class KlassDumper(
     }
 
     fun writeFieldInfo(field: FieldInfo, index: Int) {
-        val annotations = ik.annotations?.fieldsAnnotations?.get(index)
-        val typeAnnotations = ik.annotations?.fieldsTypeAnnotations?.get(index)
+        val annotations = if (mode == DumpMode.Minimal) null else ik.annotations?.fieldsAnnotations?.get(index)
+        val typeAnnotations = if (mode == DumpMode.Minimal) null else ik.annotations?.fieldsTypeAnnotations?.get(index)
 
         buf.writeShort(field.accessFlags.toInt() and JVM_RECOGNIZED_FIELD_MODIFIERS)
         buf.writeShort(field.nameIndex.toInt())
         buf.writeShort(field.signatureIndex.toInt())
 
+        val signatureIndex = if (mode == DumpMode.Minimal) 0 else field.signatureIndex.toInt()
+        val initialValueIndex = if (mode == DumpMode.Minimal) 0 else field.initialValueIndex.toInt()
+
         var attributesCount = 0
-        if (field.initialValueIndex.toInt() != 0) {
+        if (initialValueIndex != 0) {
             ++attributesCount
         }
-        if (field.signatureIndex.toInt() != 0) {
+        if (signatureIndex != 0) {
             ++attributesCount
         }
         if (annotations != null) {
@@ -99,21 +108,24 @@ class KlassDumper(
 
     fun writeClassAttributes() {
         val innerClasses = InnerClassesIterator(scope, ik)
-        val genericSignatureIndex = ik.genericSignatureIndex
-        val annotations = ik.annotations?.classAnnotations
-        val typeAnnotations = ik.annotations?.classTypeAnnotations
+        val innerClassEntries = if (mode == DumpMode.Minimal) null else innerClasses.entries
+        val genericSignatureIndex = if (mode == DumpMode.Minimal) 0 else ik.genericSignatureIndex
+        val annotations = if (mode == DumpMode.Minimal) null else ik.annotations?.classAnnotations
+        val typeAnnotations = if (mode == DumpMode.Minimal) null else ik.annotations?.classTypeAnnotations
+        val sourceFileNameIndex = if (mode == DumpMode.Minimal) 0 else ik.sourceFileNameIndex.toInt()
+        val sourceDebugExtension = if (mode == DumpMode.Minimal) null else ik.sourceDebugExtension
 
         var attributeCount = 0
         if (genericSignatureIndex != 0.toShort()) {
             ++attributeCount
         }
-        if (ik.sourceFileNameIndex != 0.toShort()) {
+        if (sourceFileNameIndex != 0) {
             ++attributeCount
         }
-        if (ik.sourceDebugExtension != null) {
+        if (sourceDebugExtension != null) {
             ++attributeCount
         }
-        if (innerClasses.entries > 0) {
+        if ((innerClassEntries ?: 0) > 0) {
             ++attributeCount
         }
         if (annotations != null) {
@@ -143,21 +155,19 @@ class KlassDumper(
         if (genericSignatureIndex != 0.toShort()) {
             writeSignatureAttribute(genericSignatureIndex.toInt())
         }
-        if (ik.sourceFileNameIndex != 0.toShort()) {
+        if (sourceFileNameIndex != 0) {
             writeSourceFileAttribute()
         }
-        if (ik.sourceDebugExtension != null) {
+        if (sourceDebugExtension != null) {
             writeSourceDebugExtensionAttribute()
         }
-        if (innerClasses.entries > 0) {
+        if ((innerClassEntries ?: 0) > 0) {
             writeInnerClassesAttribute(innerClasses)
         }
         if (annotations != null) {
-            println("writing ${annotations.length} class annotations")
             writeAnnotationsAttribute("RuntimeVisibleAnnotations", annotations)
         }
         if (typeAnnotations != null) {
-            println("writing ${typeAnnotations.length} type annotations")
             writeAnnotationsAttribute("RuntimeVisibleTypeAnnotations", typeAnnotations)
         }
         if (ik.constantPool.operands != null) {
@@ -305,11 +315,13 @@ class KlassDumper(
 
         val accessFlags = method.accessFlags.toInt()
         val constMethod = method.constMethod
-        val genericSignatureIndex = constMethod.genericSignatureIndex.toInt()
-        val annotations = constMethod.methodAnnotations
-        val parameterAnnotations = constMethod.parameterAnnotations
-        val defaultAnnotations = constMethod.defaultAnnotations
-        val typeAnnotations = constMethod.typeAnnotations
+        val genericSignatureIndex = if (mode == DumpMode.Minimal) 0 else constMethod.genericSignatureIndex.toInt()
+        val annotations = if (mode == DumpMode.Minimal) null else constMethod.methodAnnotations
+        val parameterAnnotations = if (mode == DumpMode.Minimal) null else constMethod.parameterAnnotations
+        val defaultAnnotations = if (mode == DumpMode.Minimal) null else constMethod.defaultAnnotations
+        val typeAnnotations = if (mode == DumpMode.Minimal) null else constMethod.typeAnnotations
+        val hasMethodParameters = if (mode == DumpMode.Minimal) false else constMethod.hasCheckedExceptions
+        val hasCheckedExceptions = if (mode == DumpMode.Minimal) false else constMethod.hasCheckedExceptions
 
         buf.writeShort(accessFlags and JVM_RECOGNIZED_METHOD_MODIFIERS)
         buf.writeShort(constMethod.nameIndex.toInt())
@@ -319,13 +331,13 @@ class KlassDumper(
         if (constMethod.codeSize.toInt() != 0) {
             ++attributesCount
         }
-        if (constMethod.hasCheckedExceptions) {
+        if (hasCheckedExceptions) {
             ++attributesCount // has Exceptions attribute
         }
         if (defaultAnnotations != null) {
             ++attributesCount // has AnnotationDefault attribute
         }
-        if (constMethod.hasMethodParameters) {
+        if (hasMethodParameters) {
             ++attributesCount // has MethodParameters attribute
         }
         if (genericSignatureIndex != 0) {
@@ -345,13 +357,13 @@ class KlassDumper(
         if (constMethod.codeSize > 0) {
             writeCodeAttribute(method)
         }
-        if (constMethod.hasCheckedExceptions) {
+        if (hasCheckedExceptions) {
             writeExceptionsAttribute(constMethod)
         }
         if (defaultAnnotations != null) {
             writeAnnotationsAttribute("AnnotationDefault", defaultAnnotations)
         }
-        if (constMethod.hasMethodParameters) {
+        if (hasMethodParameters) {
             writeMethodParameterAttribute(constMethod)
         }
         if (genericSignatureIndex != 0) {
@@ -423,13 +435,15 @@ class KlassDumper(
 
         buf.writeShort(numMethods - numOverpass)
 
-        val methodOrder = arrayOfNulls<Int>(numMethods)
+        var methodOrder = arrayOfNulls<Int>(numMethods)
 
         if (ik.methodOrdering != null) {
             for (index in 0 until numMethods) {
                 val originalIndex = ik.methodOrdering!![index]!!
-                check(originalIndex in 0..<numMethods) {
-                    "invalid original method index"
+                if (originalIndex !in 0..<numMethods) {
+                    println("method order link was broken $originalIndex !in 0..<$numMethods reverting to default.")
+                    methodOrder = arrayOfNulls(numMethods)
+                    break
                 }
                 methodOrder[originalIndex] = index
             }
@@ -466,11 +480,16 @@ class KlassDumper(
         var localVariableTableLength = 0
         var localVariableTypeTableLength = 0
 
+        val hasLineNumberTable = if (mode == DumpMode.Minimal) false else constMethod.hasLineNumberTable
+        val hasStackMapTable = if (mode == DumpMode.Minimal) false else constMethod.hasStackMapTable
+        val hasLocalVariableTable = if (mode == DumpMode.Minimal) false else constMethod.hasLocalVariableTable
+        val exceptionTable = if (mode == DumpMode.Minimal) emptyList() else constMethod.exceptionTable
+
         var attributeCount = 0
         var attributesSize = 0
 
         // todo
-        if (constMethod.hasLineNumberTable) {
+        if (hasLineNumberTable) {
             lineNumberCount = constMethod.lineNumberTable.size
             if (lineNumberCount != 0) {
                 ++attributeCount
@@ -478,7 +497,7 @@ class KlassDumper(
             }
         }
 
-        if (constMethod.hasStackMapTable) {
+        if (hasStackMapTable) {
             stackMapLength = constMethod.stackMapData!!.length
             if (stackMapLength != 0) {
                 ++attributeCount
@@ -486,7 +505,7 @@ class KlassDumper(
             }
         }
 
-        if (constMethod.hasLocalVariableTable) {
+        if (hasLocalVariableTable) {
             localVariableTableLength = constMethod.localVariableTableLength.toInt()
             if (localVariableTableLength != 0) {
                 ++attributeCount
@@ -508,10 +527,8 @@ class KlassDumper(
             }
         }
 
-        val exceptionTableLength = constMethod.exceptionTableLength.toInt()
-
         val codeSize = constMethod.codeSize
-        val size = 2 + 2 + 4 + codeSize + 2 + (2 + 2 + 2 + 2) * exceptionTableLength + 2 + attributesSize
+        val size = 2 + 2 + 4 + codeSize + 2 + (2 + 2 + 2 + 2) * exceptionTable.size + 2 + attributesSize
 
         writeAttributeNameIndex("Code")
         buf.writeInt(size)
@@ -521,9 +538,9 @@ class KlassDumper(
         buf.writeInt(codeSize.toInt())
         copyBytecode(method)
 
-        buf.writeShort(exceptionTableLength)
+        buf.writeShort(exceptionTable.size)
 
-        for (element in constMethod.exceptionTable) {
+        for (element in exceptionTable) {
             buf.writeShort(element.startPc.toInt())
             buf.writeShort(element.endPc.toInt())
             buf.writeShort(element.handlerPc.toInt())
