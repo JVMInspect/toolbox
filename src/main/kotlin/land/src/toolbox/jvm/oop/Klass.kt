@@ -28,6 +28,8 @@ open class Klass(address: Address) : Struct(address), Oop {
 
     val accessFlags: Int by nonNull("_access_flags")
 
+    val javaMirror: OopHandle by nonNull("_java_mirror")
+
     val klassType: Type
         get() = when {
         layoutHelper < _lh_neutral_value -> Type.InstanceKlass

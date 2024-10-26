@@ -31,10 +31,10 @@ fun main() {
     }
 
     val universe = vm.globals.universe
-    val stringKlass = universe.instanceKlass("java/lang/String")!!
+    val stringKlass = universe.instanceKlass("land/src/toolbox/jvm/Universe")!!
 
-    //val mirror = stringKlass.mirror
-    //println(mirror)
+    val loaderOop = stringKlass.classLoaderData.loader
+    val loaderKlass = loaderOop?.obj?.klass
 
     val fileOutput = DataOutputStream(File("String.class").outputStream())
     val klassDumper = KlassDumper(vm, stringKlass, fileOutput)
@@ -43,7 +43,6 @@ fun main() {
 
     ClassReader(File("String.class").readBytes())
         .accept(ClassWriter(ClassWriter.COMPUTE_FRAMES), 0)
-
 
     proc.detach()
 }

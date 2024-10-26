@@ -5,8 +5,8 @@ import java.util.LinkedList
 
 class Universe(val scope: Scope) {
     @OptIn(ExperimentalStdlibApi::class)
-    val loadedKlasses: LinkedList<Klass> by lazy {
-        val result: LinkedList<Klass> = LinkedList()
+    val loadedKlasses: Map<String, Klass> by lazy {
+        val result: MutableMap<String, Klass> = mutableMapOf()
 
         val graph: ClassLoaderDataGraph = scope.structs(-1)!!
 
@@ -25,7 +25,7 @@ class Universe(val scope: Scope) {
 
             var klass: Klass? = cld.klasses
             while (klass != null) {
-                result.add(klass)
+                result[klass.name.string] = klass
                 klass = klass.nextLink
             }
             cld = cld.next
@@ -35,7 +35,7 @@ class Universe(val scope: Scope) {
     }
 
     fun klass(name: String): Klass? {
-        return loadedKlasses.find { it.name.string == name }
+        return loadedKlasses[name]
     }
 
     fun instanceKlass(name: String): InstanceKlass? {

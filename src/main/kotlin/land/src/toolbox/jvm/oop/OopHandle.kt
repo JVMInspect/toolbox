@@ -5,5 +5,6 @@ import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Struct
 
 class OopHandle(address: Address) : Struct(address) {
-    val obj: Long by nonNull("_obj")
+    // _obj is a oop*, and oop is a oopDesc*
+    val obj: OopDesc by nonNull("_obj")
 }
