@@ -85,12 +85,12 @@ class KlassDumper(
 
         buf.writeShort(attributesCount)
 
-        if (field.initialValueIndex.toInt() != 0) {
+        if (initialValueIndex != 0) {
             writeAttributeNameIndex("ConstantValue")
             buf.writeInt(2)
             buf.writeShort(field.initialValueIndex.toInt())
         }
-        if (field.signatureIndex.toInt() != 0) {
+        if (signatureIndex != 0) {
             writeSignatureAttribute(field.signatureIndex.toInt())
         }
         if (annotations != null) {
