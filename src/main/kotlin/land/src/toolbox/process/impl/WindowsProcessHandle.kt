@@ -118,6 +118,7 @@ class WindowsProcessHandle(private val handle: HANDLE, override val local: Boole
 
         fun getJavaProcesses(): Set<ProcessHandle> {
             val processes = mutableSetOf<ProcessHandle>()
+            val currentPid = kernel32.GetCurrentProcessId()
 
             for (processId in getActiveProcessIds()) {
                 val handle = kernel32.OpenProcess(0x38, false, processId) ?: continue
@@ -128,7 +129,7 @@ class WindowsProcessHandle(private val handle: HANDLE, override val local: Boole
                 val path = String(buffer, 0, length.value)
                 val name = File(path).name
                 if (!name.equals("java.exe") && !name.equals("javaw.exe")) continue
-                processes.add(WindowsProcessHandle(handle, false))
+                processes.add(WindowsProcessHandle(handle, processId == currentPid))
             }
 
             return processes

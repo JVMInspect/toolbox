@@ -95,6 +95,9 @@ class LinuxProcessHandle(override val pid: Int, override val local: Boolean) : P
     }
 
     companion object : ProcessHandles {
+        private val currentPid =
+            java.lang.ProcessHandle.current().pid().toInt()
+
         override val remote: Set<ProcessHandle>
             get() = File("/proc").listFiles()!!
                 .asSequence()
@@ -105,10 +108,10 @@ class LinuxProcessHandle(override val pid: Int, override val local: Boolean) : P
                     val file = File("/proc/$it/cmdline")
                     file.exists() && file.readText().contains("java")
                 }
-                .map { LinuxProcessHandle(it, false) }
+                .map { LinuxProcessHandle(it, it == currentPid) }
                 .toSet()
 
         override val current: ProcessHandle =
-            LinuxProcessHandle(java.lang.ProcessHandle.current().pid().toInt(), true)
+            LinuxProcessHandle(currentPid, true)
     }
 }
