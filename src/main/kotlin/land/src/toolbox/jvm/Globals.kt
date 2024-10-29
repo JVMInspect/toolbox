@@ -2,6 +2,7 @@ package land.src.toolbox.jvm
 
 import land.src.toolbox.jvm.oop.CompressedKlassPointers
 import land.src.toolbox.jvm.oop.CompressedOops
+import land.src.toolbox.jvm.oop.VMSymbols
 import land.src.toolbox.jvm.primitive.Address
 
 class Globals(val scope: Scope) {
@@ -10,4 +11,5 @@ class Globals(val scope: Scope) {
     val universe = Universe(placeholder)
     val compressedOops = CompressedOops(placeholder)
     val compressedKlassPointers = CompressedKlassPointers(placeholder)
+    val vmSymbols = VMSymbols(placeholder)
 }

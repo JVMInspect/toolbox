@@ -72,6 +72,26 @@ class InstanceKlass(address: Address) : Klass(address) {
         return (miscFlags.toInt() and flag.bit(this)) != 0
     }
 
+    fun getFieldName(info: FieldInfo): String {
+        return if (info.accessFlags.toInt() and JVM_ACC_FIELD_INTERNAL != 0) {
+            globals.vmSymbols.lookupSymbol(info.nameIndex.toInt()).string
+        } else {
+            constantPool.getString(info.nameIndex.toInt())
+        }
+    }
+
+    fun getFieldDescriptor(info: FieldInfo): String {
+        return if (info.accessFlags.toInt() and JVM_ACC_FIELD_INTERNAL != 0) {
+            globals.vmSymbols.lookupSymbol(info.signatureIndex.toInt()).string
+        } else {
+            constantPool.getString(info.signatureIndex.toInt())
+        }
+    }
+
+    fun getField(name: String): FieldInfo {
+        return fieldInfos.first { getFieldName(it) == name }
+    }
+
     val fieldInfos: List<FieldInfo> by lazy {
         val info = mutableListOf<FieldInfo>()
         var fieldCount = fieldData.length
