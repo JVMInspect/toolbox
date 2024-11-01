@@ -14,8 +14,11 @@ class Oops(scope: Scope) : Scope by scope {
     operator fun invoke(address: Long, oopType: KClass<*>): Oop? {
         val currentType = cache[address]?.let { it::class } ?: oopType
         if (currentType != oopType) {
-            require(currentType.java.isAssignableFrom(oopType.java)) {
-                "Replacement oop type must be assignable from the current type"
+            val baseAssignable = currentType.java.isAssignableFrom(oopType.java)
+            val superAssignable = currentType.java.superclass.isAssignableFrom(oopType.java)
+            // todo: be more lenient?
+            require(baseAssignable || superAssignable) {
+                "Replacement oop type ($oopType) must be assignable from the current type ($currentType)"
             }
             val oop = structs(address, oopType) as? Oop?
             cache[address] = oop
