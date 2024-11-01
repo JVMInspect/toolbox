@@ -10,4 +10,14 @@ class ClassLoaderData(address: Address) : Struct(address), Oop {
     val loader: OopHandle? by maybeNull("_class_loader")
     val klasses: Klass? by maybeNull("_klasses")
     val next: ClassLoaderData? by maybeNull("_next")
+
+    val allKlasses: Map<String, Klass> by lazy {
+            val result: MutableMap<String, Klass> = mutableMapOf()
+            var klass: Klass? = klasses
+            while (klass != null) {
+                result[klass.name.string] = klass
+                klass = klass.nextLink
+            }
+            result
+        }
 }

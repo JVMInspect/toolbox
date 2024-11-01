@@ -23,6 +23,13 @@ class InstanceKlass(address: Address) : Klass(address) {
         arrays(nestMembersAddress, false)!!
     }
 
+    val nestHost: InstanceKlass? by lazy {
+        val nestHostAddress = address.base + type.field("_inner_classes")!!.offsetOrAddress + (pointerSize * 2)
+        if (unsafe.getAddress(nestHostAddress) == 0L)
+            return@lazy null
+        InstanceKlass(Address(this, nestHostAddress))
+    }
+
     val permittedSubclasses: Array<Short> by lazy {
         val nestHostAddress = address.base + type.field("_inner_classes")!!.offsetOrAddress + (pointerSize * 2)
         val permittedSubclassesAddress = nestHostAddress + pointerSize
@@ -67,6 +74,8 @@ class InstanceKlass(address: Address) : Klass(address) {
     val lowPackedOffset: Int by constant("FieldInfo::low_packed_offset")
     val highPackedOffset: Int by constant("FieldInfo::high_packed_offset")
     val miscFlags: Short by nonNull("_misc_flags")
+
+    val osrNMethodsHead: NMethod? by maybeNull("_osr_nmethods_head")
 
     fun isFlagSet(flag: InstanceKlassFlag): Boolean {
         return (miscFlags.toInt() and flag.bit(this)) != 0
@@ -131,6 +140,15 @@ class InstanceKlass(address: Address) : Klass(address) {
 
     val javaFieldInfos: List<FieldInfo> by lazy {
         fieldInfos.filter { it.accessFlags.toInt() and JVM_ACC_FIELD_INTERNAL == 0 }
+    }
+
+    val resolvedFields: List<Field> by lazy {
+        fieldInfos.map {
+            val name = getFieldName(it)
+            val descriptor = getFieldDescriptor(it)
+            val offset = it.highOffset.toInt() shl 16 or it.lowOffset.toInt()
+            Field(name, descriptor, it.accessFlags.toInt(), offset shr 2)
+        }
     }
 }
 

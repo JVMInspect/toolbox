@@ -23,11 +23,7 @@ class Universe(val scope: Scope) {
             //    r.exceptionOrNull()?.printStackTrace()
             //}
 
-            var klass: Klass? = cld.klasses
-            while (klass != null) {
-                result[klass.name.string] = klass
-                klass = klass.nextLink
-            }
+            result.putAll(cld.allKlasses)
             cld = cld.next
         }
 
@@ -40,5 +36,21 @@ class Universe(val scope: Scope) {
 
     fun instanceKlass(name: String): InstanceKlass? {
         return klass(name)?.instanceKlass
+    }
+
+    fun findAllClassloadersContaining(name: String): List<ClassLoaderData> {
+        val result = LinkedList<ClassLoaderData>()
+
+        val graph: ClassLoaderDataGraph = scope.structs(-1)!!
+
+        var cld: ClassLoaderData? = graph.head
+        while (cld != null) {
+            if (cld.allKlasses.containsKey(name)) {
+                result.add(cld)
+            }
+            cld = cld.next
+        }
+
+        return result
     }
 }
