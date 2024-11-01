@@ -10,7 +10,7 @@ class VMSymbols(address: Address): Struct(address) {
 
     fun lookupSymbol(index: Int): Symbol {
         val symbolAddress = unsafe.getAddress(_vm_symbols + index * type.size)
-        return Symbol(Address(this, symbolAddress))
+        return oops(symbolAddress)!!
     }
 
     override val typeName = "Symbol"
