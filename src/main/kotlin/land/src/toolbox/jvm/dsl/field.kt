@@ -1,6 +1,8 @@
 package land.src.toolbox.jvm.dsl
 
 import land.src.toolbox.jvm.Scope
+import land.src.toolbox.jvm.primitive.Address
+import land.src.toolbox.jvm.primitive.Oop
 import land.src.toolbox.jvm.primitive.Struct
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
@@ -124,17 +126,48 @@ open class NullableFieldDelegate<V : Any>(
         if (factory != null)
             return factory!!()
 
-        return when (this.type) {
-            Byte::class -> unsafe.getByte(address())
-            Short::class -> unsafe.getShort(address())
-            Char::class -> unsafe.getChar(address())
-            Int::class -> unsafe.getInt(address())
-            Long::class -> unsafe.getLong(address())
-            Float::class -> unsafe.getFloat(address())
-            Double::class -> unsafe.getDouble(address())
-            String::class -> unsafe.getString(address())
-            else -> error("${this.type.simpleName} getter is not supported")
+        val address = address()
+
+        if (type == Address::class)
+            return Address(struct, unsafe.getLong(address)) as V?
+
+        return when (type) {
+            Byte::class -> unsafe.getByte(address)
+            Short::class -> unsafe.getShort(address)
+            Char::class -> unsafe.getChar(address)
+            Int::class -> unsafe.getInt(address)
+            Long::class -> unsafe.getLong(address)
+            Float::class -> unsafe.getFloat(address)
+            Double::class -> unsafe.getDouble(address)
+            String::class -> unsafe.getString(address)
+            else -> error("${type.simpleName} getter is not supported")
         } as? V?
+    }
+
+    operator fun setValue(struct: Struct, property: KProperty<*>, value: V?) {
+        structFields.put(struct, property.name, location)
+
+        val address = address()
+
+        if (oops.isOop(type))
+            return unsafe.putLong(address, (value as? Oop)?.base ?: 0)
+
+        if (structs.isStruct(type))
+            return unsafe.putLong(address, (value as? Struct)?.base ?: 0)
+
+        if (type == Address::class)
+            return unsafe.putLong(address, (value as? Address)?.base ?: 0)
+
+        when (type) {
+            Byte::class -> unsafe.putByte(address, value as? Byte ?: 0)
+            Short::class -> unsafe.putShort(address, value as? Short ?: 0)
+            Char::class -> unsafe.putChar(address, value as? Char ?: 0.toChar())
+            Int::class -> unsafe.putInt(address, value as? Int ?: 0)
+            Long::class -> unsafe.putLong(address, value as? Long ?: 0)
+            Float::class -> unsafe.putFloat(address, value as? Float ?: 0f)
+            Double::class -> unsafe.putDouble(address, value as? Double ?: 0.0)
+            else -> error("${type.simpleName} setter is not supported")
+        }
     }
 }
 
