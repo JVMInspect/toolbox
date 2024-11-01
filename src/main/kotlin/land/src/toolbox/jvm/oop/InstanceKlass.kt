@@ -3,7 +3,6 @@ package land.src.toolbox.jvm.oop
 import land.src.toolbox.jvm.dsl.*
 import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Array
-import land.src.toolbox.jvm.primitive.ByteArray
 import land.src.toolbox.jvm.util.*
 
 class InstanceKlass(address: Address) : Klass(address) {
@@ -75,7 +74,7 @@ class InstanceKlass(address: Address) : Klass(address) {
     val highPackedOffset: Int by constant("FieldInfo::high_packed_offset")
     val miscFlags: Short by nonNull("_misc_flags")
 
-    val osrNMethodsHead: NMethod? by maybeNull("_osr_nmethods_head")
+    val osrNMethodsHead: nmethod? by maybeNull("_osr_nmethods_head")
 
     fun isFlagSet(flag: InstanceKlassFlag): Boolean {
         return (miscFlags.toInt() and flag.bit(this)) != 0

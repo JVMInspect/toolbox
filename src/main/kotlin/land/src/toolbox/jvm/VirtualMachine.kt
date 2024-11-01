@@ -9,14 +9,15 @@ import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Field
 import land.src.toolbox.jvm.primitive.Type
 import land.src.toolbox.process.ProcessHandle
+import java.io.File
 import java.util.*
 
-class VirtualMachine(private val process: ProcessHandle) : Scope {
+class VirtualMachine(private val process: ProcessHandle, private val structsFile: File? = null) : Scope {
     private val symbols = Symbols(process)
-    private val types = LinkedHashMap<String, Type>()
     private val constants = LinkedHashMap<String, Number>()
 
     val isLocal = process.local
+    private var vmTypes: VMStructs
 
     override val vm = this
     override val version: VMVersion
@@ -28,7 +29,14 @@ class VirtualMachine(private val process: ProcessHandle) : Scope {
     override val structs = Structs(this)
 
     init {
-        readVmTypes(readVmStructs())
+        // either read the structs from the file or from the process
+        vmTypes = if (structsFile != null) {
+            VMStructs().apply {
+                parse(structsFile.readText())
+            }
+        } else {
+            VMStructs(readVmTypes(readVmStructs()))
+        }
         readVmIntConstants()
         readVmLongConstants()
         version = structs(Address.PLACEHOLDER)!!
@@ -66,7 +74,7 @@ class VirtualMachine(private val process: ProcessHandle) : Scope {
         return structs
     }
 
-    private fun readVmTypes(structs: Map<String, Set<Field>>) {
+    private fun readVmTypes(structs: Map<String, Set<Field>>): MutableMap<String, Type> {
         var entry = symbol("gHotSpotVMTypes")
         val typeNameOffset = symbol("gHotSpotVMTypeEntryTypeNameOffset")
         val superclassNameOffset = symbol("gHotSpotVMTypeEntrySuperclassNameOffset")
@@ -75,6 +83,8 @@ class VirtualMachine(private val process: ProcessHandle) : Scope {
         val isUnsignedOffset = symbol("gHotSpotVMTypeEntryIsUnsignedOffset")
         val sizeOffset = symbol("gHotSpotVMTypeEntrySizeOffset")
         val arrayStride = symbol("gHotSpotVMTypeEntryArrayStride")
+
+        val types = mutableMapOf<String, Type>()
 
         while (true) {
             val typeNameAddress = unsafe.getAddress(entry + typeNameOffset)
@@ -91,6 +101,8 @@ class VirtualMachine(private val process: ProcessHandle) : Scope {
             types[typeName] = Type(typeName, superclassName, size, isOop, isInt, isUnsigned, fields)
             entry += arrayStride
         }
+
+        return types
     }
 
     private fun readVmIntConstants() {
@@ -131,8 +143,12 @@ class VirtualMachine(private val process: ProcessHandle) : Scope {
         println()
 
         println("Types:")
-        for (type in types.values) {
-            println(type)
+        println(vmTypes.print())
+    }
+
+    fun print(file: File) {
+        file.printWriter().use { out ->
+            out.println(vmTypes.print())
         }
     }
 
@@ -143,7 +159,7 @@ class VirtualMachine(private val process: ProcessHandle) : Scope {
     private fun symbol(name: String): Long =
         unsafe.getLong(Pointer.nativeValue(symbols.lookup(name)))
 
-    fun type(name: String) = types[name]
+    fun type(name: String) = vmTypes[name]
         ?: throw NoSuchElementException("No such type: $name")
 
     fun constant(name: String) = constants[name]

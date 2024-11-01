@@ -17,7 +17,7 @@ class Field(
     override fun toString(): String {
         val offsetHex = offsetOrAddress.toHexString()
 
-        return if (isStatic) "static $typeName $name @0x$offsetHex"
+        return if (isStatic) "static $typeName $name @ 0x$offsetHex"
         else "$typeName $name @ $offsetHex"
     }
 }
