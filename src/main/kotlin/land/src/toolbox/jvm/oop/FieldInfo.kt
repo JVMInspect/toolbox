@@ -1,5 +1,7 @@
 package land.src.toolbox.jvm.oop
 
+import land.src.toolbox.jvm.dsl.nonNullFromConstantIndex
+import land.src.toolbox.jvm.dsl.nonNullFromConstantOffset
 import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Struct
 
@@ -11,6 +13,15 @@ class FieldInfo(
     val lowOffset: Short,
     val highOffset: Short
 )
+
+//class FieldInfo(address: Address) : Struct(address) {
+//    val accessFlags: Short by nonNullFromConstantIndex("FieldInfo::access_flags_offset")
+//    val nameIndex: Short by nonNullFromConstantIndex("FieldInfo::name_index_offset")
+//    val signatureIndex: Short by nonNullFromConstantIndex("FieldInfo::signature_index_offset")
+//    val initialValueIndex: Short by nonNullFromConstantIndex("FieldInfo::initval_index_offset")
+//    val lowOffset: Short by nonNullFromConstantIndex("FieldInfo::low_packed_offset")
+//    val highOffset: Short by nonNullFromConstantIndex("FieldInfo::high_packed_offset")
+//}
 
 //class FieldInfo(address: Address) : Struct(address) {
 //    val accessFlagsOffset: Int by lazy {

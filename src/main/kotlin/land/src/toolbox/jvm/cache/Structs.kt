@@ -38,7 +38,13 @@ class Structs(scope: Scope) : Scope by scope {
         isStruct(type.java)
 
     fun sizeof(type: KClass<*>) = sizes.computeIfAbsent(type) {
-        vm.type(type.simpleName ?: error("Cannot get type name")).size
+        when (type) {
+            Boolean::class, Byte::class -> 1
+            Short::class -> 2
+            Int::class -> 4
+            Long::class -> 8
+            else -> vm.type(type.simpleName ?: error("Cannot get type name")).size
+        }
     }
 
     operator fun invoke(address: Long, structType: KClass<*>): Struct? {

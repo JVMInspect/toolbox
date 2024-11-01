@@ -177,12 +177,42 @@ class FieldLocationProvider(val scope: Scope) : FieldLocationProviderScope {
     override val release: String get() = scope.version.release
 }
 
+/**
+ * Internal helper function for computing the offset of a field using a [constant].
+ */
+inline fun <reified V : Any> Struct.constantOffsetValue(constant: String, isIndex: Boolean): Long {
+    val isFullPath = constant.contains("::")
+
+    val value =
+        if (isFullPath) vm.constant(constant) as Long
+        else vm.constant("${typeName}::$constant") as Long
+
+    val multiplier = if (isIndex) structs.sizeof(V::class) else 1
+    return value * multiplier
+}
+
+/**
+ * Creates a nullable field, which computes the field's address using the provided [fieldName].
+ *
+ * The field's full path will be computed as a concatenation of [Struct.typeName] and [fieldName].
+ *
+ * @param fieldName the name of the field
+ * @param isPointer if the field type is a pointer
+ */
 inline fun <reified V : Any> Struct.maybeNull(fieldName: String, isPointer: Boolean = false) = NullableFieldDelegate(
     type = V::class,
     struct = this,
     location = FieldLocation.Name(fieldName, isPointer)
 )
 
+/**
+ * Creates a nullable field, which computes the address of the field using a [FieldLocationProviderScope].
+ *
+ * This scope allows the field to be initialized using a different address/offset/name depending on the current VM state,
+ * usually depending on the VM version.
+ *
+ * @param block the field location provider which returns the location of the field when computed.
+ */
 inline fun <reified V : Any> Struct.maybeNull(
     block: FieldLocationProviderScope.() -> FieldLocation<*>
 ): NullableFieldDelegate<V> {
@@ -191,12 +221,64 @@ inline fun <reified V : Any> Struct.maybeNull(
     return NullableFieldDelegate(type = V::class, struct = this, location = location)
 }
 
+/**
+ * Creates a nullable field, which treats the constant value as an index, which will compute the field address as
+ * `struct + (value * size)` where `size` is the size of [V].
+ *
+ * The constant's parent type name can be omitted if it resides in the same [Struct].
+ *
+ * @param constant the name of the constant
+ * @param isPointer if the field type is a pointer
+ */
+inline fun <reified V : Any> Struct.maybeNullFromConstantIndex(
+    constant: String,
+    isPointer: Boolean = false
+) = NullableFieldDelegate(
+    type = V::class,
+    struct = this,
+    location = FieldLocation.Offset(constantOffsetValue<V>(constant, true), isPointer)
+)
+
+/**
+ * Creates a nullable field, which treats the constant value as an offset, which will compute the field address as
+ * `struct + value` where `value` is the constant value.
+ *
+ * The constant's parent type name can be omitted if it resides in the same [Struct].
+ *
+ * @param constant the name of the constant
+ * @param isPointer if the field type is a pointer
+ */
+inline fun <reified V : Any> Struct.maybeNullFromConstantOffset(
+    constant: String,
+    isPointer: Boolean = false
+) = NullableFieldDelegate(
+    type = V::class,
+    struct = this,
+    location = FieldLocation.Offset(constantOffsetValue<V>(constant, false), isPointer)
+)
+
+/**
+ * Creates a field, which computes the field's address using the provided [fieldName].
+ *
+ * The field's full path will be computed as a concatenation of [Struct.typeName] and [fieldName].
+ *
+ * @param fieldName the name of the field
+ * @param isPointer if the field type is a pointer
+ */
 inline fun <reified V : Any> Struct.nonNull(fieldName: String, isPointer: Boolean = false) = FieldDelegate(
     type = V::class,
     struct = this,
     location = FieldLocation.Name(fieldName, isPointer)
 )
 
+/**
+ * Creates a field, which computes the address of the field using a [FieldLocationProviderScope].
+ *
+ * This scope allows the field to be initialized using a different address/offset/name depending on the current VM state,
+ * usually depending on the VM version.
+ *
+ * @param block the field location provider which returns the location of the field when computed.
+ */
 inline fun <reified V : Any> Struct.nonNull(
     block: FieldLocationProviderScope.() -> FieldLocation<*>
 ): FieldDelegate<V> {
@@ -204,3 +286,39 @@ inline fun <reified V : Any> Struct.nonNull(
     val location = block(provider)
     return FieldDelegate(type = V::class, struct = this, location = location)
 }
+
+/**
+ * Creates a field, which treats the constant value as an index, which will compute the field address as
+ * `struct + (value * size)` where `size` is the size of [V].
+ *
+ * The constant's parent type name can be omitted if it resides in the same [Struct].
+ *
+ * @param constant the name of the constant
+ * @param isPointer if the field type is a pointer
+ */
+inline fun <reified V : Any> Struct.nonNullFromConstantIndex(
+    constant: String,
+    isPointer: Boolean = false
+) = FieldDelegate(
+    type = V::class,
+    struct = this,
+    location = FieldLocation.Offset(constantOffsetValue<V>(constant, true), isPointer)
+)
+
+/**
+ * Creates a field, which treats the constant value as an offset, which will compute the field address as
+ * `struct + value` where `value` is the constant value.
+ *
+ * The constant's parent type name can be omitted if it resides in the same [Struct].
+ *
+ * @param constant the name of the constant
+ * @param isPointer if the field type is a pointer
+ */
+inline fun <reified V : Any> Struct.nonNullFromConstantOffset(
+    constant: String,
+    isPointer: Boolean = false
+) = FieldDelegate(
+    type = V::class,
+    struct = this,
+    location = FieldLocation.Offset(constantOffsetValue<V>(constant, false), isPointer)
+)

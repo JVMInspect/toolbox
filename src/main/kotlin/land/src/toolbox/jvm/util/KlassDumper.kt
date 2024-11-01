@@ -328,7 +328,7 @@ class KlassDumper(
         buf.writeShort(constMethod.signatureIndex.toInt())
 
         var attributesCount = 0
-        if (constMethod.codeSize.toInt() != 0) {
+        if (constMethod.codeSize > 0) {
             ++attributesCount
         }
         if (hasCheckedExceptions) {
@@ -511,8 +511,6 @@ class KlassDumper(
                 ++attributeCount
                 attributesSize += 2 + 4 + 2 + localVariableTableLength * (2 + 2 + 2 + 2 + 2)
             }
-
-            //println("LVT len: $localVariableTableLength")
 
             // Local variables with generic signatures must have LVTT entries
             for (element in constMethod.localVariableTable) {
