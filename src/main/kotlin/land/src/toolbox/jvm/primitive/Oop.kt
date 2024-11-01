@@ -3,6 +3,8 @@ package land.src.toolbox.jvm.primitive
 import land.src.toolbox.jvm.Scope
 
 /**
- * Oop classes must also inherit [Struct]!
+ * Oop are [Struct] types which are cached by address.
+ *
+ * They must inherit [Struct] in order to be initialized and cached.
  */
 interface Oop : Scope, Addressable
