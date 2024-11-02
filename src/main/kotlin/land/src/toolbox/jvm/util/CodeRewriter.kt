@@ -1,8 +1,6 @@
 package land.src.toolbox.jvm.util
 
 import land.src.toolbox.jvm.oop.ConstMethod
-import java.util.*
-import kotlin.experimental.and
 import kotlin.experimental.inv
 
 class CodeRewriter(val method: ConstMethod) {
@@ -78,28 +76,29 @@ class CodeRewriter(val method: ConstMethod) {
     fun isMemberAccess(jvm: Int) =
         jvm in GETSTATIC..INVOKEINTERFACE
 
-    fun readShort(code: ByteArray, index: Int, bigEndian: Boolean): Short {
-        return if (bigEndian) {
-            (((code[index].toInt() and 0xff) shl 8) or (code[index + 1].toInt() and 0xff)).toShort()
-        } else {
-            (((code[index + 1].toInt() and 0xff) shl 8) or (code[index].toInt() and 0xff)).toShort()
-        }
+    private fun readShort(code: ByteArray, index: Int, bigEndian: Boolean): Short {
+        val high = code[index].toInt() and 0xff
+        val low = code[index + 1].toInt() and 0xff
+        return if (bigEndian) ((high shl 8) or low).toShort()
+        else ((low shl 8) or high).toShort()
     }
 
-    fun readInt(code: ByteArray, index: Int, bigEndian: Boolean): Int {
-        if (bigEndian) {
-            return readShort(code, index, true).toInt() shl 16 or readShort(code, index + 2, true).toInt()
-        }
-        return readShort(code, index + 2, false).toInt() shl 16 or readShort(code, index, false).toInt()
+    private fun readInt(code: ByteArray, index: Int, bigEndian: Boolean): Int {
+        val highShort = readShort(code, index, bigEndian).toInt() and 0xffff
+        val lowShort = readShort(code, index + 2, bigEndian).toInt() and 0xffff
+        return if (bigEndian) (highShort shl 16) or lowShort
+        else (lowShort shl 16) or highShort
     }
 
-    fun writeShort(code: ByteArray, index: Int, value: Short, bigEndian: Boolean) {
+    private fun writeShort(code: ByteArray, index: Int, value: Short, bigEndian: Boolean) {
+        val high = (value.toInt() shr 8).toByte()
+        val low = value.toByte()
         if (bigEndian) {
-            code[index] = (value.toInt() shr 8).toByte()
-            code[index + 1] = value.toByte()
+            code[index] = high
+            code[index + 1] = low
         } else {
-            code[index] = value.toByte()
-            code[index + 1] = (value.toInt() shr 8).toByte()
+            code[index] = low
+            code[index + 1] = high
         }
     }
 
@@ -107,19 +106,16 @@ class CodeRewriter(val method: ConstMethod) {
         var bci = 0
         val code = method.code
         val rewritten = code.copyOf(code.size)
-        val constantPool = method.constants
-        val referenceMap = constantPool.refEntries
-        val objectMap = constantPool.objectEntries
+        val pool = method.constants
 
-        if (constantPool.cache == null) {
+        if (pool.cache == null) {
             return@rewrittenCode rewritten
         }
 
         while (bci < code.size) {
             val jvm = code[bci].toInt() and 0xff
             val java = java(jvm)
-            val operands = operands(java)
-            rewritten[bci] = (java and 0xff).toByte()
+            rewritten[bci] = java.toByte()
 
             when {
                 jvm == FAST_ILOAD2 -> {
@@ -134,32 +130,32 @@ class CodeRewriter(val method: ConstMethod) {
                 }
                 jvm in FAST_AGETFIELD..FAST_SPUTFIELD -> {
                     val index = readShort(code, bci + 1, false)
-                    val refIndex = referenceMap[index.toInt()]
+                    val refIndex = pool.getRefIndex(index)
                     writeShort(rewritten, bci + 1, refIndex, true)
                 }
                 jvm == FAST_IACCESS_0 || jvm == FAST_AACCESS_0 -> {
                     rewritten[bci + 1] = GETFIELD.toByte()
                     val index = readShort(code, bci + 2, false)
-                    val refIndex = referenceMap[index.toInt()]
+                    val refIndex = pool.getRefIndex(index)
                     writeShort(rewritten, bci + 2, refIndex, true)
                 }
                 jvm == FAST_ALDC -> {
                     val index = (code[bci + 1].toInt() and 0xff).toShort()
-                    rewritten[bci + 1] = objectMap[index.toInt()].toByte()
+                    rewritten[bci + 1] = pool.getObjectIndex(index).toByte()
                 }
                 jvm == FAST_ALDC_W -> {
                     val index = readShort(code, bci + 1, false)
-                    val refIndex = objectMap[index.toInt()]
+                    val refIndex = pool.getObjectIndex(index)
                     writeShort(rewritten, bci + 1, refIndex, true)
                 }
                 jvm == INVOKEHANDLE -> {
                     val index = readShort(code, bci + 1, false)
-                    val refIndex = referenceMap[index.toInt()]
+                    val refIndex = pool.getRefIndex(index)
                     writeShort(rewritten, bci + 1, refIndex, true)
                 }
                 isMemberAccess(java) -> {
                     val index = readShort(code, bci + 1, false)
-                    val refIndex = referenceMap[index.toInt()]
+                    val refIndex = pool.getRefIndex(index)
                     writeShort(rewritten, bci + 1, refIndex, true)
                 }
                 java == LOOKUPSWITCH -> {
@@ -183,7 +179,7 @@ class CodeRewriter(val method: ConstMethod) {
                 }
                 java == INVOKEDYNAMIC -> {
                     val index = readShort(code, bci + 1, false).inv()
-                    val actual = constantPool.cache!![index.toInt()].cpIndex
+                    val actual = pool.cache!![index.toInt()].cpIndex
                     writeShort(rewritten, bci + 1, actual.toShort(), true)
                     writeShort(rewritten, bci + 3, 0, true)
                 }
@@ -197,8 +193,7 @@ class CodeRewriter(val method: ConstMethod) {
                 }
             }
 
-            bci += operands
-            bci++
+            bci += 1 + operands(java)
         }
 
         return@rewrittenCode rewritten
