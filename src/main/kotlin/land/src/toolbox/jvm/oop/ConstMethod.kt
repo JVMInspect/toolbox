@@ -1,11 +1,26 @@
 package land.src.toolbox.jvm.oop
 
+import land.src.toolbox.jvm.Scope
 import land.src.toolbox.jvm.dsl.maybeNullArray
 import land.src.toolbox.jvm.dsl.nonNull
 import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Array
 import land.src.toolbox.jvm.primitive.Oop
 import land.src.toolbox.jvm.primitive.Struct
+
+class Code(val address: Address, val size: Int) : Scope by address {
+    val bytes by lazy {
+        unsafe.getMemory(address.base, size)
+    }
+
+    operator fun get(index: Int) {
+        unsafe.getByte(address.base + index)
+    }
+
+    operator fun set(index: Int, value: Byte) {
+        unsafe.putByte(address.base + index, value)
+    }
+}
 
 class ConstMethod(address: Address) : Struct(address) {
     val maxStack: Short by nonNull("_max_stack")
@@ -29,7 +44,7 @@ class ConstMethod(address: Address) : Struct(address) {
     val isNative: Boolean get() = method.isNative
 
     val code by lazy {
-        unsafe.getMemory(address.base + bytecodeOffset, codeSize.toInt())
+        Code(Address(this, address.base + bytecodeOffset), codeSize.toInt())
     }
 
     val codeAddress by lazy {
