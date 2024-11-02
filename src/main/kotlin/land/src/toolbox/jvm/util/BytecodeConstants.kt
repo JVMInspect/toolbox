@@ -248,6 +248,8 @@ const val NOFAST_ALOAD_0 = 236
 const val NOFAST_ILOAD = 237
 const val SHOULDNOTREACHHERE = 238 // For Debugging
 
+const val INVALID = 255
+
 private val OPCODE_NAMES by lazy opcodeNames@{
     val buffer = Array(256) { "UNKNOWN (0x${it.toString(16)})" }
     val thisClass = ::NOP.javaField!!.declaringClass

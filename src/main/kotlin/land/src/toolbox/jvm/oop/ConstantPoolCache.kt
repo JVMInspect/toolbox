@@ -20,7 +20,7 @@ class ConstantPoolCache(address: Address) : Struct(address), Oop {
     }
 
     //val constantPool: ConstantPool by nonNull("_constant_pool")
-    val referenceMap: Array<Short> by nonNullArray("_reference_map")
+    val referenceMap: Array<Short>? by maybeNullArray("_reference_map")
     //val resolvedFieldEntries: Array<ResolvedFieldEntry> by nonNull("_resolved_field_entries")
     //val resolvedIndyEntries: Array<ResolvedIndyEntry> by nonNull("_resolved_indy_entries")
     //val resolvedMethodEntries: Array<ResolvedMethodEntry> by nonNull("_resolved_method_entries")

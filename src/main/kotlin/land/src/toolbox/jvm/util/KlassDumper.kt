@@ -67,7 +67,7 @@ class KlassDumper(
         buf.writeShort(field.signatureIndex.toInt())
 
         val signatureIndex = if (mode == DumpMode.Minimal) 0 else field.signatureIndex.toInt()
-        val initialValueIndex = if (mode == DumpMode.Minimal) 0 else field.initialValueIndex.toInt()
+        val initialValueIndex = field.initialValueIndex.toInt()
 
         var attributesCount = 0
         if (initialValueIndex != 0) {

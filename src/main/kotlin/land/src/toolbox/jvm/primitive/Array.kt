@@ -1,9 +1,11 @@
 package land.src.toolbox.jvm.primitive
 
 import land.src.toolbox.jvm.Scope
+import land.src.toolbox.jvm.util.Accessible
 import kotlin.reflect.KClass
 
-open class Array<E : Any>(address: Address, private val elementInfo: ElementInfo) : Struct(address), Iterable<E> {
+open class Array<E : Any>(address: Address, private val elementInfo: ElementInfo) : Struct(address), Iterable<E>,
+    Accessible<E> {
     data class ElementInfo(
         val type: KClass<*>,
         val size: Int,
@@ -61,7 +63,7 @@ open class Array<E : Any>(address: Address, private val elementInfo: ElementInfo
     }
 
     @Suppress("Unchecked_Cast")
-    operator fun get(index: Int): E? {
+    override operator fun get(index: Int): E? {
         var elementAddress = elementBase + (index * elementSize).toLong()
         if (elementInfo.isPointer || elementInfo.isArray)
             elementAddress = unsafe.getAddress(elementAddress)

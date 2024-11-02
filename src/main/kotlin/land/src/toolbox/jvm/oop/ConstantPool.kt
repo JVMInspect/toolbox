@@ -24,6 +24,7 @@ class ConstantPool(address: Address) : Struct(address), Oop {
     val resolvedKlasses: Array<Klass> by nonNullArray("_resolved_klasses")
     val sourceFileNameIndex: Short by nonNull("_source_file_name_index")
     val refEntries = mutableListOf<Short>()
+    val objectEntries = mutableListOf<Short>()
 
     val dataBase by lazy {
         address.base + vm.type("ConstantPool").size
@@ -34,6 +35,7 @@ class ConstantPool(address: Address) : Struct(address), Oop {
     }
 
     fun getRefIndex(index: Short) = refEntries[index.toInt()]
+    fun getObjectIndex(index: Short) = objectEntries[index.toInt()]
 
     val bytes by lazy {
         val bos = ByteArrayOutputStream()
@@ -198,7 +200,7 @@ class ConstantPool(address: Address) : Struct(address), Oop {
 
     fun getSymbol(index: Int): Symbol {
         val address = unsafe.getAddress(index(index))
-        return Symbol(Address(this, address))
+        return oops(address)!!
     }
 
     fun getString(index: Int): String {
@@ -273,6 +275,12 @@ class ConstantPool(address: Address) : Struct(address), Oop {
                 JVM_CONSTANT_UnresolvedClassInError -> {
                     val klassName = getKlassNameAt(index).string
                     classSymbolMap[klassName] = index
+                }
+
+                JVM_CONSTANT_String,
+                JVM_CONSTANT_MethodType,
+                JVM_CONSTANT_MethodHandle -> {
+                    objectEntries += index.toShort()
                 }
 
                 JVM_CONSTANT_Fieldref,

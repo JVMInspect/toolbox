@@ -41,7 +41,8 @@ class CodeRewriter(val method: ConstMethod) {
         NOFAST_GETFIELD to GETFIELD,
         NOFAST_PUTFIELD to PUTFIELD,
         NOFAST_ALOAD_0 to ALOAD_0,
-        NOFAST_ILOAD to ILOAD
+        NOFAST_ILOAD to ILOAD,
+        INVALID to NOP
     )
 
     fun java(code: Int) =
@@ -107,7 +108,12 @@ class CodeRewriter(val method: ConstMethod) {
         val code = method.code
         val rewritten = code.copyOf(code.size)
         val constantPool = method.constants
-        val cache = constantPool.cache
+        val referenceMap = constantPool.refEntries
+        val objectMap = constantPool.objectEntries
+
+        if (constantPool.cache == null) {
+            return@rewrittenCode rewritten
+        }
 
         while (bci < code.size) {
             val jvm = code[bci].toInt() and 0xff
@@ -117,46 +123,45 @@ class CodeRewriter(val method: ConstMethod) {
 
             when {
                 jvm == FAST_ILOAD2 -> {
+                    rewritten[bci] = ILOAD.toByte()
                     rewritten[bci + 2] = ILOAD.toByte()
                     bci += 3
+                    continue
                 }
                 jvm == FAST_ICALOAD -> {
+                    rewritten[bci] = IALOAD.toByte()
                     rewritten[bci + 2] = CALOAD.toByte()
                     bci += 3
+                    continue
                 }
                 jvm in FAST_AGETFIELD..FAST_SPUTFIELD -> {
                     val index = readShort(code, bci + 1, false)
-                    val refIndex = cache!![index.toInt()].cpIndex.toShort()
+                    val refIndex = referenceMap[index.toInt()]
                     writeShort(rewritten, bci + 1, refIndex, true)
                 }
                 jvm == FAST_IACCESS_0 || jvm == FAST_AACCESS_0 -> {
                     rewritten[bci + 1] = GETFIELD.toByte()
                     val index = readShort(code, bci + 2, false)
-                    val refIndex = cache!![index.toInt()].cpIndex.toShort()
+                    val refIndex = referenceMap[index.toInt()]
                     writeShort(rewritten, bci + 2, refIndex, true)
                 }
                 jvm == FAST_ALDC -> {
                     val index = (code[bci + 1].toInt() and 0xff).toShort()
-                    rewritten[bci + 1] = cache!!.referenceMap[index.toInt()]?.toByte()!!
+                    rewritten[bci + 1] = objectMap[index.toInt()].toByte()
                 }
                 jvm == FAST_ALDC_W -> {
                     val index = readShort(code, bci + 1, false)
-                    val refIndex = cache!!.referenceMap[index.toInt()]!!
+                    val refIndex = objectMap[index.toInt()]
                     writeShort(rewritten, bci + 1, refIndex, true)
                 }
                 jvm == INVOKEHANDLE -> {
                     val index = readShort(code, bci + 1, false)
-                    val refIndex = constantPool.getRefIndex(index)
+                    val refIndex = referenceMap[index.toInt()]
                     writeShort(rewritten, bci + 1, refIndex, true)
                 }
                 isMemberAccess(java) -> {
-                    if (constantPool.cache == null) {
-                        bci += operands
-                        bci++
-                        continue
-                    }
                     val index = readShort(code, bci + 1, false)
-                    val refIndex = constantPool.cache!![index.toInt()].cpIndex.toShort()
+                    val refIndex = referenceMap[index.toInt()]
                     writeShort(rewritten, bci + 1, refIndex, true)
                 }
                 java == LOOKUPSWITCH -> {
@@ -179,11 +184,6 @@ class CodeRewriter(val method: ConstMethod) {
                     continue
                 }
                 java == INVOKEDYNAMIC -> {
-                    if (constantPool.cache == null) {
-                        bci += operands
-                        bci++
-                        continue
-                    }
                     val index = readShort(code, bci + 1, false).inv()
                     val actual = constantPool.cache!![index.toInt()].cpIndex
                     writeShort(rewritten, bci + 1, actual.toShort(), true)
