@@ -15,12 +15,15 @@ class NMethod(address: Address) : CompiledMethod(address) {
     val entryPoint: Long by nonNull("_entry_point")
     val entryPointBci: Int by nonNull("_entry_bci")
     val verifiedEntryPoint: Long by nonNull("_verified_entry_point")
+    val lockCount: Int by nonNull("_lock_count")
     var osrLink: NMethod? by maybeNull("_osr_link")
     var state: Byte by nonNull("_state")
 
     fun isOsrMethod() = entryPointBci != -1
     fun isInUse() = state <= in_use
     fun isNotEntrant() = state == not_entrant
+
+    fun isUsedByVm() = lockCount > 0
 
     fun makeNotEntrant() {
         if (isOsrMethod() && isInUse()) { // osr method

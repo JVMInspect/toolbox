@@ -30,6 +30,9 @@ class Method(address: Address) : Struct(address), Oop {
 
         val nmethod = compiledMethod!!.native
 
+        while (nmethod.isUsedByVm()) {
+            Thread.sleep(1)
+        }
         nmethod.makeNotEntrant()
 
         clearCode()
