@@ -2,6 +2,7 @@ package land.src.toolbox.jvm.dsl
 
 import land.src.toolbox.jvm.Scope
 import land.src.toolbox.jvm.primitive.Address
+import land.src.toolbox.jvm.primitive.Addressable
 import land.src.toolbox.jvm.primitive.Oop
 import land.src.toolbox.jvm.primitive.Struct
 import kotlin.reflect.KClass
@@ -149,14 +150,8 @@ open class NullableFieldDelegate<V : Any>(
 
         val address = address()
 
-        if (oops.isOop(type))
-            return unsafe.putLong(address, (value as? Oop)?.base ?: 0)
-
-        if (structs.isStruct(type))
-            return unsafe.putLong(address, (value as? Struct)?.base ?: 0)
-
-        if (type == Address::class)
-            return unsafe.putLong(address, (value as? Address)?.base ?: 0)
+        if (Addressable::class.java.isAssignableFrom(type.java))
+            return unsafe.putLong(address, (value as? Addressable)?.base ?: 0)
 
         when (type) {
             Byte::class -> unsafe.putByte(address, value as? Byte ?: 0)
