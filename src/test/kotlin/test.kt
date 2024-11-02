@@ -1,16 +1,14 @@
-import land.src.toolbox.jvm.Universe
 import land.src.toolbox.jvm.VMFlags
-import land.src.toolbox.jvm.util.KlassDumper
 import land.src.toolbox.jvm.VirtualMachine
-import land.src.toolbox.jvm.oop.OopDesc
+import land.src.toolbox.jvm.util.ICONST_0
+import land.src.toolbox.jvm.util.ICONST_1
+import land.src.toolbox.jvm.util.ICONST_2
+import land.src.toolbox.jvm.util.IRETURN
 //import land.src.toolbox.local.mirror
 import land.src.toolbox.process.impl.LinuxProcessHandle
 import land.src.toolbox.process.impl.WindowsProcessHandle
-import org.objectweb.asm.ClassReader
-import org.objectweb.asm.ClassWriter
-import java.io.DataOutputStream
-import java.io.File
 
+@OptIn(ExperimentalStdlibApi::class)
 fun main() {
     val proc = System.getProperty("os.name").let {
         when {
@@ -23,26 +21,57 @@ fun main() {
     proc.attach()
     val vm = VirtualMachine(proc)
 
-    //vm.print()
+    vm.print()
 
     val flags: VMFlags = vm.structs(-1)!!
     for (flag in flags.flags) {
         println(flag)
     }
 
+    val testString = TestClass123()
+
     val universe = vm.globals.universe
-    val stringKlass = universe.instanceKlass("land/src/toolbox/jvm/Universe")!!
+    val testClass123Klass = universe.instanceKlass("TestClass123")!!
+    val method = testClass123Klass.findMethod("a", "()I")!!
 
-    val loaderOop = stringKlass.classLoaderData.loader
-    val loaderKlass = loaderOop?.obj?.klass
+    var count = 0
+    println("Making method hot")
+    while (method.compiledMethod == null) {
+        testString.a()
+    }
 
-    val fileOutput = DataOutputStream(File("String.class").outputStream())
-    val klassDumper = KlassDumper(vm, stringKlass, fileOutput)
+    println("_code is: ${method.compiledMethod!!.base.toHexString()}")
 
-    klassDumper.writeClassFileFormat()
+    println("a() = ${testString.a()}");
 
-    ClassReader(File("String.class").readBytes())
-        .accept(ClassWriter(ClassWriter.COMPUTE_FRAMES), 0)
+    {
+        println("Deoptimizing method")
+        // alter bytecode
+        method.unsafe.putByte(method.constMethod.codeAddress.base, ICONST_0.toByte())
+        method.unsafe.putByte(method.constMethod.codeAddress.base + 1, IRETURN.toByte())
+        method.deoptimizie()
+    }() // magic
+
+    println("a() = ${testString.a()}");
+
+    println("_code is: ${method.compiledMethod}")
+
+    println("Making method hot")
+    count = 0
+    while (method.compiledMethod == null) {
+        testString.a()
+        count++
+    }
+
+    println("_code is: ${method.compiledMethod!!.base.toHexString()}")
+
+    count = 10
+    while (count-- > 0) {
+        Thread.sleep(100)
+        System.gc()
+    }
+
+    println("a() = ${testString.a()}");
 
     proc.detach()
 }

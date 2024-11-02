@@ -74,10 +74,18 @@ class InstanceKlass(address: Address) : Klass(address) {
     val highPackedOffset: Int by constant("FieldInfo::high_packed_offset")
     val miscFlags: Short by nonNull("_misc_flags")
 
-    val osrNMethodsHead: NMethod? by maybeNull("_osr_nmethods_head")
+    var osrNMethodsHead: NMethod? by maybeNull("_osr_nmethods_head")
 
     fun isFlagSet(flag: InstanceKlassFlag): Boolean {
         return (miscFlags.toInt() and flag.bit(this)) != 0
+    }
+
+    fun findMethod(name: String, descriptor: String): Method? {
+        return methods.firstOrNull {
+            val methodName = constantPool.getString(it.constMethod.nameIndex.toInt())
+            val methodDescriptor = constantPool.getString(it.constMethod.signatureIndex.toInt())
+            methodName == name && methodDescriptor == descriptor
+        }
     }
 
     fun getFieldName(info: FieldInfo): String {
@@ -148,6 +156,34 @@ class InstanceKlass(address: Address) : Klass(address) {
             val offset = it.highOffset.toInt() shl 16 or it.lowOffset.toInt()
             Field(name, descriptor, it.accessFlags.toInt(), offset shr 2)
         }
+    }
+
+    fun removeOsrNMethod(n: NMethod): Boolean {
+        var found = false
+
+        var cur = osrNMethodsHead
+        var last: NMethod? = null
+
+        val m = n.method!!
+
+        while(cur != null && cur.base != n.base) {
+            last = cur
+            cur = cur.osrLink
+        }
+
+        var next: NMethod? = null
+        if (cur != null && cur.base == n.base) {
+            found = true
+            next = cur.osrLink
+            if (last == null) {
+                osrNMethodsHead = next
+            } else {
+                last.osrLink = next
+            }
+        }
+        n.osrLink = null
+
+        return found
     }
 }
 
