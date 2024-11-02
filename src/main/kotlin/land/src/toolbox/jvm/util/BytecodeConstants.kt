@@ -244,3 +244,30 @@ const val NOFAST_PUTFIELD = 235
 const val NOFAST_ALOAD_0 = 236
 const val NOFAST_ILOAD = 237
 const val SHOULDNOTREACHHERE = 238 // For Debugging
+
+val OPCODE_NAMES: Array<String> = Array(256) { "UNKNOWN" }
+
+// fill in the opcode names
+// get this class name
+
+fun initOpcodeNames() {
+    val clazz = Class.forName("land.src.toolbox.jvm.util.BytecodeConstantsKt")
+    val fields = clazz.declaredFields
+    for (field in fields) {
+        if (field.type == Int::class.java) {
+            val name = field.name
+            val value = field.get(null) as Int
+            OPCODE_NAMES[value] = name
+        }
+    }
+}
+
+fun opcodeName(opcode: Int): String {
+    if (OPCODE_NAMES[0] == "UNKNOWN") {
+        initOpcodeNames()
+    }
+    if (opcode < 0 || opcode >= OPCODE_NAMES.size) {
+        return "UNKNOWN"
+    }
+    return OPCODE_NAMES[opcode]
+}

@@ -126,22 +126,22 @@ class CodeRewriter(val method: ConstMethod) {
                 }
                 jvm in FAST_AGETFIELD..FAST_SPUTFIELD -> {
                     val index = readShort(code, bci + 1, false)
-                    val refIndex = cache[index.toInt()].cpIndex.toShort()
+                    val refIndex = cache!![index.toInt()].cpIndex.toShort()
                     writeShort(rewritten, bci + 1, refIndex, true)
                 }
                 jvm == FAST_IACCESS_0 || jvm == FAST_AACCESS_0 -> {
                     rewritten[bci + 1] = GETFIELD.toByte()
                     val index = readShort(code, bci + 2, false)
-                    val refIndex = cache[index.toInt()].cpIndex.toShort()
+                    val refIndex = cache!![index.toInt()].cpIndex.toShort()
                     writeShort(rewritten, bci + 2, refIndex, true)
                 }
                 jvm == FAST_ALDC -> {
                     val index = (code[bci + 1].toInt() and 0xff).toShort()
-                    rewritten[bci + 1] = cache.referenceMap[index.toInt()]?.toByte()!!
+                    rewritten[bci + 1] = cache!!.referenceMap[index.toInt()]?.toByte()!!
                 }
                 jvm == FAST_ALDC_W -> {
                     val index = readShort(code, bci + 1, false)
-                    val refIndex = cache.referenceMap[index.toInt()]!!
+                    val refIndex = cache!!.referenceMap[index.toInt()]!!
                     writeShort(rewritten, bci + 1, refIndex, true)
                 }
                 jvm == INVOKEHANDLE -> {
@@ -150,31 +150,42 @@ class CodeRewriter(val method: ConstMethod) {
                     writeShort(rewritten, bci + 1, refIndex, true)
                 }
                 isMemberAccess(java) -> {
+                    if (constantPool.cache == null) {
+                        bci += operands
+                        bci++
+                        continue
+                    }
                     val index = readShort(code, bci + 1, false)
-                    val refIndex = constantPool.cache[index.toInt()].cpIndex.toShort()
+                    val refIndex = constantPool.cache!![index.toInt()].cpIndex.toShort()
                     writeShort(rewritten, bci + 1, refIndex, true)
                 }
                 java == LOOKUPSWITCH -> {
-                    bci += 4 - (bci and 3) + 4
-                    val pairs = readShort(code, bci, true)
-                    bci += 4 + pairs * 8
-                    if (jvm == FAST_LINEARSWITCH || jvm == FAST_BINARYSWITCH) {
-                        bci-- // todo() figure out why this is needed
-                    }
+                    val alignedBci = roundTo(bci + 1, 4)
+                    val npairs = readInt(code, alignedBci + 4, true)
+                    val len = (alignedBci - bci) + (2 + 2*npairs)*4
+
+                    bci += len
+
+                    continue
                 }
                 java == TABLESWITCH -> {
-                    bci += 4 - (bci and 3) + 4
-                    val low = readInt(code, bci, true)
-                    bci += 4
-                    val high = readInt(code, bci, true)
-                    bci += 4
-                    val count = high - low + 1
-                    bci += count * 4
-                    bci -= 1
+                    val alignedBci = roundTo(bci + 1, 4)
+                    val low = readInt(code, alignedBci + 4, true)
+                    val high = readInt(code, alignedBci + 8, true)
+                    val len = (alignedBci - bci) + (3 + high - low + 1)*4
+
+                    bci += len
+
+                    continue
                 }
                 java == INVOKEDYNAMIC -> {
+                    if (constantPool.cache == null) {
+                        bci += operands
+                        bci++
+                        continue
+                    }
                     val index = readShort(code, bci + 1, false).inv()
-                    val actual = constantPool.cache[index.toInt()].cpIndex
+                    val actual = constantPool.cache!![index.toInt()].cpIndex
                     writeShort(rewritten, bci + 1, actual.toShort(), true)
                     writeShort(rewritten, bci + 3, 0, true)
                 }
