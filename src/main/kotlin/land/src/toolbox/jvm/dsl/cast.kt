@@ -46,5 +46,10 @@ class CastDelegate<S : Struct>(
     }
 }
 
+/**
+ * Delegates a reinterpreted cast of the receiver struct's address as [S].
+ *
+ * Caller of the delegate is responsible for ensuring the cast will succeed.
+ */
 inline fun <reified S : Struct> Struct.cast(offset: Long = 0) =
     CastDelegate(this, S::class, offset)
