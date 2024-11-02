@@ -126,13 +126,11 @@ class CodeRewriter(val method: ConstMethod) {
                     rewritten[bci] = ILOAD.toByte()
                     rewritten[bci + 2] = ILOAD.toByte()
                     bci += 3
-                    continue
                 }
                 jvm == FAST_ICALOAD -> {
                     rewritten[bci] = IALOAD.toByte()
                     rewritten[bci + 2] = CALOAD.toByte()
                     bci += 3
-                    continue
                 }
                 jvm in FAST_AGETFIELD..FAST_SPUTFIELD -> {
                     val index = readShort(code, bci + 1, false)
