@@ -23,7 +23,7 @@ sealed class FieldLocation<V>(val value: V, val isPointer: Boolean) {
 }
 
 interface AddressProvider {
-    operator fun invoke(): Long
+    operator fun invoke(usePointer: Boolean = true): Long
 }
 
 class NamedFieldAddressProvider<V : Any>(
@@ -31,13 +31,13 @@ class NamedFieldAddressProvider<V : Any>(
     val type: KClass<V>,
     val location: FieldLocation.Name
 ) : AddressProvider, Scope by struct {
-    override fun invoke(): Long {
+    override fun invoke(usePointer: Boolean): Long {
         val name = location.value
         val field = structFields(struct, name) ?: throw NoSuchFieldException("${struct.type.name}#$name")
         val base = struct.address.base
         val address = if (field.isStatic) field.offsetOrAddress else base + field.offsetOrAddress
 
-        return if (location.isPointer || structs.isStruct(type))
+        return if (usePointer && (location.isPointer || structs.isStruct(type)))
             unsafe.getAddress(address)
         else address
     }
@@ -48,11 +48,11 @@ class OffsetFieldAddressProvider<V : Any>(
     val type: KClass<V>,
     val location: FieldLocation.Offset
 ) : AddressProvider, Scope by struct {
-    override fun invoke(): Long {
+    override fun invoke(usePointer: Boolean): Long {
         val base = struct.address.base
         val address = base + location.value
 
-        return if (location.isPointer || structs.isStruct(type))
+        return if (usePointer && (location.isPointer || structs.isStruct(type)))
             unsafe.getAddress(address)
         else address
     }
@@ -63,9 +63,9 @@ class AddressFieldAddressProvider<V : Any>(
     val type: KClass<V>,
     val location: FieldLocation.Address
 ) : AddressProvider, Scope by struct {
-    override fun invoke(): Long {
+    override fun invoke(usePointer: Boolean): Long {
         val address = location.value
-        return if (location.isPointer || structs.isStruct(type))
+        return if (usePointer && (location.isPointer || structs.isStruct(type)))
             unsafe.getAddress(address)
         else address
     }
@@ -130,7 +130,7 @@ open class NullableFieldDelegate<V : Any>(
         val address = address()
 
         if (type == Address::class)
-            return Address(struct, unsafe.getLong(address)) as V?
+            return Address(struct, unsafe.getAddress(address)) as V?
 
         return when (type) {
             Byte::class -> unsafe.getByte(address)
@@ -148,10 +148,11 @@ open class NullableFieldDelegate<V : Any>(
     operator fun setValue(struct: Struct, property: KProperty<*>, value: V?) {
         structFields.put(struct, property.name, location)
 
-        val address = address()
+        if (Addressable::class.java.isAssignableFrom(type.java)) {
+            return unsafe.putAddress(address(false), (value as? Addressable)?.base ?: 0)
+        }
 
-        if (Addressable::class.java.isAssignableFrom(type.java))
-            return unsafe.putLong(address, (value as? Addressable)?.base ?: 0)
+        val address = address()
 
         when (type) {
             Byte::class -> unsafe.putByte(address, value as? Byte ?: 0)
