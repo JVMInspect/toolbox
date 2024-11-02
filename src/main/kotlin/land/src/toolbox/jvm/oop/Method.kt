@@ -21,14 +21,7 @@ class Method(address: Address) : Struct(address), Oop {
         offset(adapterOffset)
     }
 
-    var compiledMethod: CompiledMethod? get() {
-        val address: Long = unsafe.getAddress(address.base + type.field("_code")!!.offsetOrAddress)
-        if (address == 0L) return null
-        return CompiledMethod(Address(this, address))
-    }
-    set(value) {
-        unsafe.putAddress(address.base + type.field("_code")!!.offsetOrAddress, value?.base ?: 0)
-    }
+    var compiledMethod: CompiledMethod? by maybeNull("_code")
 
     val isNative: Boolean get() = accessFlags.toInt() and JVM_ACC_NATIVE != 0
 
@@ -43,11 +36,7 @@ class Method(address: Address) : Struct(address), Oop {
     }
 
     fun clearCode() {
-        fromCompiledEntry = if (adapter == null) {
-            0
-        } else {
-            adapter!!.c2iEntry
-        }
+        fromCompiledEntry = adapter?.c2iEntry ?: 0
         fromInterpretedEntry = i2iEntry
         compiledMethod = null
     }

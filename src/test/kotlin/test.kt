@@ -47,8 +47,10 @@ fun main() {
     {
         println("Deoptimizing method")
         // alter bytecode
-        method.unsafe.putByte(method.constMethod.codeAddress.base, ICONST_0.toByte())
-        method.unsafe.putByte(method.constMethod.codeAddress.base + 1, IRETURN.toByte())
+        method.constMethod.code[0] = ICONST_0.toByte()
+        method.constMethod.code[1] = IRETURN.toByte()
+        //method.unsafe.putByte(method.constMethod.codeAddress.base, ICONST_0.toByte())
+        //method.unsafe.putByte(method.constMethod.codeAddress.base + 1, IRETURN.toByte())
         method.deoptimizie()
     }() // magic
 

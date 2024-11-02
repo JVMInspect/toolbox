@@ -104,7 +104,7 @@ class CodeRewriter(val method: ConstMethod) {
 
     val rewrittenCode: ByteArray by lazy rewrittenCode@{
         var bci = 0
-        val code = method.code
+        val code = method.code.bytes
         val rewritten = code.copyOf(code.size)
         val pool = method.constants
 
