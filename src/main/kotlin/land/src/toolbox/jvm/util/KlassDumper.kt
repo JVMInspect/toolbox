@@ -320,7 +320,7 @@ class KlassDumper(
         val parameterAnnotations = if (mode == DumpMode.Minimal) null else constMethod.parameterAnnotations
         val defaultAnnotations = if (mode == DumpMode.Minimal) null else constMethod.defaultAnnotations
         val typeAnnotations = if (mode == DumpMode.Minimal) null else constMethod.typeAnnotations
-        val hasMethodParameters = if (mode == DumpMode.Minimal) false else constMethod.hasCheckedExceptions
+        val hasMethodParameters = if (mode == DumpMode.Minimal) false else constMethod.hasMethodParameters
         val hasCheckedExceptions = if (mode == DumpMode.Minimal) false else constMethod.hasCheckedExceptions
 
         buf.writeShort(accessFlags and JVM_RECOGNIZED_METHOD_MODIFIERS)
