@@ -99,5 +99,10 @@ open class Array<E : Any>(address: Address, private val elementInfo: ElementInfo
     override fun iterator() = ArrayIterator(this)
 }
 
-class ByteArray(address: Address, info: ElementInfo) : Array<Byte>(address, info)
-class ShortArray(address: Address, info: ElementInfo) : Array<Short>(address, info)
+abstract class PrimitiveArray<E : Any>(address: Address, info: ElementInfo) : Array<E>(address, info) {
+    override fun get(index: Int): E = super.get(index)!!
+}
+
+class ByteArray(address: Address, info: ElementInfo) : PrimitiveArray<Byte>(address, info)
+class LongArray(address: Address, info: ElementInfo) : PrimitiveArray<Long>(address, info)
+class ShortArray(address: Address, info: ElementInfo) : PrimitiveArray<Short>(address, info)

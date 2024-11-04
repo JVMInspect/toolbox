@@ -6,9 +6,9 @@ import land.src.toolbox.jvm.primitive.Struct
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 
-abstract class BaseArrayFieldDelegate<E : Any>(
+abstract class BaseArrayFieldDelegate<E : Any, A : Array<E>>(
     val struct: Struct,
-    val arrayType: KClass<out Array<E>>,
+    val arrayType: KClass<in A>,
     val elementType: KClass<E>,
     val isElementPointer: Boolean,
     val location: FieldLocation<*>
@@ -22,33 +22,33 @@ abstract class BaseArrayFieldDelegate<E : Any>(
     }
 }
 
-open class NullableArrayFieldDelegate<E : Any>(
+open class NullableArrayFieldDelegate<E : Any, A : Array<E>>(
     struct: Struct,
-    arrayType: KClass<out Array<E>>,
+    arrayType: KClass<in A>,
     elementType: KClass<E>,
     isElementPointer: Boolean,
     location: FieldLocation<*>
-) : BaseArrayFieldDelegate<E>(struct, arrayType, elementType, isElementPointer, location) {
+) : BaseArrayFieldDelegate<E, A>(struct, arrayType, elementType, isElementPointer, location) {
     @Suppress("Unchecked_Cast")
-    open operator fun getValue(struct: Struct, property: KProperty<*>): Array<E>? {
+    open operator fun getValue(struct: Struct, property: KProperty<*>): A? {
         structFields.put(struct, property.name, location)
 
-        return arrays(address(), arrayType, elementType, isElementPointer) as? Array<E>?
+        return arrays(address(), arrayType, elementType, isElementPointer) as? A?
     }
 }
 
-class ArrayFieldDelegate<E : Any>(
+class ArrayFieldDelegate<E : Any, A : Array<E>>(
     struct: Struct,
-    arrayType: KClass<out Array<E>>,
+    arrayType: KClass<in A>,
     elementType: KClass<E>,
     isElementPointer: Boolean,
     location: FieldLocation<*>
-) : NullableArrayFieldDelegate<E>(struct, arrayType, elementType, isElementPointer, location) {
-    override operator fun getValue(struct: Struct, property: KProperty<*>): Array<E> =
+) : NullableArrayFieldDelegate<E, A>(struct, arrayType, elementType, isElementPointer, location) {
+    override operator fun getValue(struct: Struct, property: KProperty<*>): A =
         super.getValue(struct, property) ?: throw NullPointerException("${struct.typeName}#$location")
 }
 
-inline fun <reified E : Any, reified A : Array<E>> Struct.maybeNullArray(
+inline fun <reified E : Any, reified A : Array<E>?> Struct.maybeNullArray(
     fieldName: String,
     isElementPointer: Boolean = structs.isStruct(E::class)
 ) = NullableArrayFieldDelegate(
@@ -59,10 +59,10 @@ inline fun <reified E : Any, reified A : Array<E>> Struct.maybeNullArray(
     location = FieldLocation.Name(fieldName, true)
 )
 
-inline fun <reified E : Any, reified A : Array<E>> Struct.maybeNullArray(
+inline fun <reified E : Any, reified A : Array<E>?> Struct.maybeNullArray(
     isElementPointer: Boolean = structs.isStruct(E::class),
     block: FieldLocationProviderScope.() -> FieldLocation<*>
-) : NullableArrayFieldDelegate<E> {
+): NullableArrayFieldDelegate<E, A & Any> {
     val provider = FieldLocationProvider(this)
     val location = block(provider)
     return NullableArrayFieldDelegate(
@@ -88,7 +88,7 @@ inline fun <reified E : Any, reified A : Array<E>> Struct.nonNullArray(
 inline fun <reified E : Any, reified A : Array<E>> Struct.nonNullArray(
     isElementPointer: Boolean = structs.isStruct(E::class),
     block: FieldLocationProviderScope.() -> FieldLocation<*>
-) : ArrayFieldDelegate<E> {
+) : ArrayFieldDelegate<E, A> {
     val provider = FieldLocationProvider(this)
     val location = block(provider)
     return ArrayFieldDelegate(
