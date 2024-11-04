@@ -64,6 +64,9 @@ open class Array<E : Any>(address: Address, private val elementInfo: ElementInfo
 
     @Suppress("Unchecked_Cast")
     override operator fun get(index: Int): E? {
+        if (index < 0 || index > length)
+            throw IndexOutOfBoundsException(index)
+
         var elementAddress = elementBase + (index * elementSize).toLong()
         if (elementInfo.isPointer || elementInfo.isArray)
             elementAddress = unsafe.getAddress(elementAddress)
