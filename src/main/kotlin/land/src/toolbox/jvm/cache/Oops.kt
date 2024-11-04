@@ -12,7 +12,7 @@ class Oops(scope: Scope) : Scope by scope {
         Oop::class.java.isAssignableFrom(type.java)
 
     operator fun invoke(address: Long, oopType: KClass<*>): Oop? {
-        if (address == 0L || unsafe.getAddress(address) == 0L)
+        if (address == 0L)
             return null
 
         val currentType = cache[address]?.let { it::class } ?: oopType
