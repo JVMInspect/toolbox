@@ -6,6 +6,7 @@ import land.src.toolbox.jvm.dsl.nonNull
 import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Oop
 import land.src.toolbox.jvm.primitive.Struct
+import java.util.concurrent.locks.LockSupport
 
 class Method(address: Address) : Struct(address), Oop {
     val maxStack: Short get() = constMethod.maxStack
@@ -30,12 +31,11 @@ class Method(address: Address) : Struct(address), Oop {
 
         val nmethod = compiledMethod!!.native
 
-        while (nmethod.isUsedByVm()) {
-            Thread.sleep(1)
-        }
+        nmethod.lockCount = 1
         nmethod.makeNotEntrant()
 
         clearCode()
+        nmethod.lockCount = 0
     }
 
     fun clearCode() {

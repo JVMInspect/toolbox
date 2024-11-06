@@ -1,5 +1,7 @@
 package land.src.toolbox.jvm.oop
 
+import dev.xdark.blw.constant.OfInt
+import dev.xdark.blw.constantpool.*
 import land.src.toolbox.jvm.dsl.maybeNull
 import land.src.toolbox.jvm.dsl.maybeNullArray
 import land.src.toolbox.jvm.dsl.nonNull
@@ -9,14 +11,17 @@ import land.src.toolbox.jvm.primitive.Array
 import land.src.toolbox.jvm.primitive.Oop
 import land.src.toolbox.jvm.primitive.Struct
 import land.src.toolbox.jvm.util.*
+import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.DataInputStream
 import java.io.DataOutputStream
+import java.nio.ByteBuffer
 
 class ConstantPool(address: Address) : Struct(address), Oop {
     val length: Int by nonNull("_length")
     val majorVersion: Short by nonNull("_major_version")
     val minorVersion: Short by nonNull("_minor_version")
-    val tags: Array<Byte> by nonNullArray("_tags")
+    var tags: Array<Byte> by nonNullArray("_tags")
     val poolHolder: InstanceKlass by nonNull("_pool_holder")
     val operands: Array<Short>? by maybeNullArray("_operands")
     val cache: ConstantPoolCache? by maybeNull("_cache")
@@ -217,7 +222,11 @@ class ConstantPool(address: Address) : Struct(address), Oop {
         get() =
             ((this shr 16).toShort().toInt() and 0xffff).toShort()
 
-    class CPKlassSlot(var nameIndex: Short, var resolvedKlassIndex: Short)
+    data class CPKlassSlot(var nameIndex: Short, var resolvedKlassIndex: Short) {
+        fun toInt(): Int {
+            return ((resolvedKlassIndex.toInt() and 0xffff) shl 16) or (nameIndex.toInt() and 0xffff)
+        }
+    }
 
     fun getInt(index: Int): Int {
         return unsafe.getInt(index(index))
@@ -300,4 +309,121 @@ class ConstantPool(address: Address) : Struct(address), Oop {
 
     fun getUtf8SymbolIndex(string: String): Int = utf8SymbolMap[string] ?: error("Symbol not present $string")
     fun getClassSymbolIndex(string: String): Int = classSymbolMap[string] ?: error("Class not present $string")
+
+    data class ExpandInformation(val cacheMapping: Map<String, Int>, val pool: ConstantPool)
+
+    fun expand(entries: List<Entry>): ExpandInformation {
+        if (entries.isEmpty()) return ExpandInformation(emptyMap(), this)
+        if (entries.size + length > 0xffff) error("Constant pool size limit exceeded")
+        // expand the constant pool
+        val oldSize = structs.sizeof(ConstantPool::class) + (length * elementSize)
+        val newSize = oldSize + (entries.size * elementSize)
+        val newPoolAddress = unsafe.allocateMemory(newSize.toLong())
+        unsafe.copyMemory(address.base, newPoolAddress, oldSize)
+
+        val newPool: ConstantPool = oops(newPoolAddress)!!
+
+        // create new tags array
+        val expandedTags = tags.expand(entries.size)
+        newPool.tags = expandedTags
+
+        // expand entries list to account for long and double entries
+
+        val cacheEntries = mutableListOf<ConstantPoolCacheEntry>()
+        val cacheMapping = mutableMapOf<String, Int>()
+
+        fun allocateEntry(index: Int): Int {
+            val entryAddress = unsafe.allocateMemory(structs.sizeof(ConstantPoolCacheEntry::class).toLong())
+            val entry: ConstantPoolCacheEntry = structs(entryAddress)!!
+            cacheEntries.add(entry)
+
+            entry.setCpIndex(index)
+
+            return cacheEntries.size - 1
+        }
+
+        entries.map { entry ->
+            when (entry) {
+                is EntryDouble -> {
+                    listOf(entry, EntryInteger(OfInt(0)))
+                }
+                is EntryLong -> {
+                    listOf(entry, EntryInteger(OfInt(0)))
+                }
+                else -> {
+                    listOf(entry)
+                }
+            }
+        }.flatten().forEachIndexed { index, entry ->
+            val newIndex = length + index
+            expandedTags[newIndex] = entry.tag().toByte()
+            when(entry) {
+                is EntryUtf8 -> {
+                    val symbol = Symbol.create(entry.value.value.toByteArray(), this)
+                    newPool[newIndex] = symbol.address
+                }
+                is EntryClass -> {
+                    expandedTags[newIndex] = JVM_CONSTANT_UnresolvedClass.toByte()
+                    // high part is the name index, low part is the resolved klass index
+                    val klassSlot = CPKlassSlot(entry.nameIndex.low, 0)
+                    newPool[newIndex] = klassSlot.toInt()
+                }
+                is EntryDouble -> {
+                    newPool[newIndex] = entry.value
+                }
+                is EntryFloat -> {
+                    newPool[newIndex] = entry.value
+                }
+                is EntryInteger -> {
+                    newPool[newIndex] = entry.value
+                }
+                is EntryLong -> {
+                    newPool[newIndex] = entry.value
+                }
+                is EntryString -> {
+                    newPool[newIndex] = entry.utf8Index
+                }
+                is EntryMemberRef -> {
+                    newPool[newIndex] = (entry.classIndex() shl 16) or entry.nameAndTypeIndex()
+                    // build constant pool entry
+                    val cacheIndex = allocateEntry(newIndex)
+                    val owner = entries[entry.classIndex()] as EntryClass
+                    val ownerName = entries[owner.nameIndex()] as EntryUtf8
+                    val nameAndType = entries[entry.nameAndTypeIndex()] as EntryNameAndType
+                    val memberName = entries[nameAndType.nameIndex()] as EntryUtf8
+                    val descriptor = entries[nameAndType.typeIndex()] as EntryUtf8
+
+                    val identifier = "${ownerName.value.value}.${memberName.value.value}${descriptor.value.value}"
+
+                    cacheMapping[identifier] = cacheIndex
+                }
+                is EntryInvokeDynamic, is EntryDynamic -> {
+                    TODO("fill in operands also do some other stuff, havent researched, look at cpCache indy objects")
+                }
+                is EntryPackage, is EntryModule -> {
+                    TODO("no one cares")
+                }
+                else -> error("Unsupported entry type: ${entry::class}")
+            }
+        }
+
+        TODO("Expand cache, read cpCache.hpp might need to update cache in JavaFrame::interpreter_frame_entry")
+        TODO("Read up on it in the macroAssembler")
+
+        return ExpandInformation(cacheMapping, newPool)
+    }
+
+    private inline operator fun <reified T> set(index: Int, value: T) {
+        val offset = index(index)
+        when (T::class) {
+            Byte::class -> unsafe.putByte(offset, value as Byte)
+            Short::class -> unsafe.putShort(offset, value as Short)
+            Int::class -> unsafe.putInt(offset, value as Int)
+            Long::class -> unsafe.putLong(offset, value as Long)
+            Float::class -> unsafe.putFloat(offset, value as Float)
+            Double::class -> unsafe.putDouble(offset, value as Double)
+            Address::class -> unsafe.putAddress(offset, (value as Address).base)
+            else -> error("Unsupported type: ${T::class}")
+        }
+    }
 }

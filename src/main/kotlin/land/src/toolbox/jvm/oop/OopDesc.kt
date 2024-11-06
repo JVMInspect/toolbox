@@ -6,10 +6,10 @@ import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Oop
 import land.src.toolbox.jvm.primitive.Struct
 
-class OopDesc(address: Address) : Struct(address) {
+open class OopDesc(address: Address) : Struct(address) {
     override val typeName: String = "oopDesc"
 
-    val _klass: Klass by nonNull("_metadata._klass")
+    protected val _klass: Klass by nonNull("_metadata._klass")
 
     var useCompressedKlassPointers = true
 
@@ -17,7 +17,7 @@ class OopDesc(address: Address) : Struct(address) {
         if (!useCompressedKlassPointers)
             return _klass
 
-        val narrowKlass = _klass.base
+        val narrowKlass = _klass.base and 0xFFFFFFFF // mask lower 32 bits
         val narrowKlassBase = globals.compressedKlassPointers.narrowKlassBase
         val narrowKlassShift = globals.compressedKlassPointers.narrowKlassShift
         val klass = narrowKlassBase + (narrowKlass shl narrowKlassShift)
@@ -36,7 +36,8 @@ class OopDesc(address: Address) : Struct(address) {
             Long::class -> unsafe.getLong(address)
             Float::class -> unsafe.getFloat(address)
             Double::class -> unsafe.getDouble(address)
-            Oop::class -> Oop(Address(this, unsafe.getAddress(address)))
+            OopDesc::class -> structs<OopDesc>(unsafe.getAddress(address))!!
+            ArrayOopDesc::class -> structs<ArrayOopDesc>(unsafe.getAddress(address))!!
             else -> error("${V::class.simpleName} getter is not supported")
         } as V
     }
@@ -52,7 +53,8 @@ class OopDesc(address: Address) : Struct(address) {
             Long::class -> unsafe.putLong(address, value as Long)
             Float::class -> unsafe.putFloat(address, value as Float)
             Double::class -> unsafe.putDouble(address, value as Double)
-            Oop::class -> unsafe.putAddress(address, (value as Oop).base)
+            OopDesc::class -> unsafe.putAddress(address, (value as OopDesc).address.base)
+            ArrayOopDesc::class -> unsafe.putAddress(address, (value as ArrayOopDesc).address.base)
             else -> error("${V::class.simpleName} setter is not supported")
         }
     }

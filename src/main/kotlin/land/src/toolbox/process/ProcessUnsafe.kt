@@ -151,4 +151,24 @@ class ProcessUnsafe(private val process: ProcessHandle) {
             "setMemory"
         }
     }
+
+    fun copyMemory(src: Long, dst: Long, length: Int) {
+        check(process.read(src.pointer, dst.pointer, length) == length) {
+            "copyMemory"
+        }
+    }
+
+    fun allocateMemory(size: Long): Long {
+        return process.allocate(size)
+    }
+
+    private val realUnsafe: sun.misc.Unsafe get() {
+        val field = sun.misc.Unsafe::class.java.getDeclaredField("theUnsafe")
+        field.isAccessible = true
+        return field.get(null) as sun.misc.Unsafe
+    }
+
+    fun allocateMemory0(size: Long, prot: Int): Long {
+        return realUnsafe.allocateMemory(size)
+    }
 }

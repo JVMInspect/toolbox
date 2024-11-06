@@ -38,11 +38,20 @@ class LinuxProcessHandle(override val pid: Int, override val local: Boolean) : P
         }
     }
 
-    override fun read(src: Pointer, dst: Pointer, size: Int): Int {
-        val local = iovec(dst, size.toLong())
-        val remote = iovec(src, size.toLong())
+    @Volatile private var localVec: iovec = iovec()
+    @Volatile private var remoteVec: iovec = iovec()
 
-        val result = LibC.process_vm_readv(pid, arrayOf(local), 1, arrayOf(remote), 1, 0)
+    @Volatile private var localArray: Array<iovec> = arrayOf(localVec)
+    @Volatile private var remoteArray: Array<iovec> = arrayOf(remoteVec)
+
+    override fun read(src: Pointer, dst: Pointer, size: Int): Int {
+        localVec.iov_base = dst
+        localVec.iov_len = size.toLong()
+
+        remoteVec.iov_base = src
+        remoteVec.iov_len = size.toLong()
+
+        val result = LibC.process_vm_readv(pid, localArray, 1, remoteArray, 1, 0)
         check(result != -1) {
             "process_vm_readv failed"
         }

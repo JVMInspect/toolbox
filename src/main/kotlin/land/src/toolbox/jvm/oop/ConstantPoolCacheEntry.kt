@@ -8,9 +8,13 @@ const val cp_index_bits = 2 * 8
 const val cp_index_mask = (1 shl cp_index_bits) - 1L
 
 class ConstantPoolCacheEntry(address: Address) : Struct(address) {
-    val indices: Long by nonNull("_indices")
+    var indices: Long by nonNull("_indices")
 
     val cpIndex: Int by lazy {
         ((indices and 0xffffffffL) and cp_index_mask).toInt()
+    }
+
+    fun setCpIndex(index: Int) {
+        indices = index.toLong() and 0xffffffffL
     }
 }

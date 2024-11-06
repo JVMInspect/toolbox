@@ -1,5 +1,6 @@
 package land.src.toolbox.jvm.oop
 
+import land.src.toolbox.jvm.Scope
 import land.src.toolbox.jvm.dsl.nonNull
 import land.src.toolbox.jvm.dsl.offset
 import land.src.toolbox.jvm.primitive.Address
@@ -10,7 +11,7 @@ import java.io.DataInputStream
 
 class Symbol(address: Address) : Struct(address), Oop {
     private val _body by offset("_body")
-    private val _length: Short by nonNull("_length")
+    private var _length: Short by nonNull("_length")
 
     val length = _length.toInt() and 0xffff
     val bytes = unsafe.getMemory(address.base + _body, length)
@@ -24,5 +25,20 @@ class Symbol(address: Address) : Struct(address), Oop {
         System.arraycopy(buf, 0, tmp, 2, len)
         val dis = DataInputStream(ByteArrayInputStream(tmp))
         return dis.readUTF()
+    }
+
+    companion object {
+        fun create(string: ByteArray, scope: Scope): Symbol {
+            val newSize = scope.structs.sizeof(Symbol::class) + string.size
+            val address = scope.unsafe.allocateMemory(newSize.toLong())
+
+            val symbol: Symbol = scope.oops(address)!!
+
+            symbol._length = string.size.toShort()
+
+            scope.unsafe.putMemory(address + symbol._body, string)
+
+            return symbol
+        }
     }
 }

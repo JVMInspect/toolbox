@@ -16,4 +16,6 @@ interface ProcessHandle {
     fun write(dst: Pointer, src: Pointer, size: Int): Int
 
     fun findLibrary(library: String): LibraryHandle?
+
+    fun allocate(size: Long, prot: Int = 0): Long = unsafe.allocateMemory0(size, prot)
 }

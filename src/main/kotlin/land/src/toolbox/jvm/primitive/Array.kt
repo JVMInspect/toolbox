@@ -97,6 +97,41 @@ open class Array<E : Any>(address: Address, private val elementInfo: ElementInfo
     override fun toString() = "Array@0x${address.base.toHexString()} (${elementInfo})"
 
     override fun iterator() = ArrayIterator(this)
+
+    fun expand(size: Int): Array<E> {
+        // old address will remain somewhere in metaspace, can't be freed
+        val entireSize = elementInfo.offset + size * elementSize
+        val newMemory = unsafe.allocateMemory(entireSize.toLong())
+        unsafe.copyMemory(address.base, newMemory, elementInfo.offset + length * elementSize)
+
+        return (arrays(newMemory, elementInfo.type, elementInfo.type, elementInfo.isPointer) as Array<E>?)!!
+    }
+
+    operator fun set(index: Int, value: E?) {
+        val elementAddress = elementBase + (index * elementSize).toLong()
+
+        if (elementInfo.isPointer || elementInfo.isArray) {
+            if (value == null) {
+                unsafe.putAddress(elementAddress, 0)
+                return
+            }
+        }
+
+        if (value == null)
+            error("Cannot set null value to array element.")
+
+        when (elementInfo.type) {
+            Byte::class -> unsafe.putByte(elementAddress, value as Byte)
+            Short::class -> unsafe.putShort(elementAddress, value as Short)
+            Char::class -> unsafe.putChar(elementAddress, value as Char)
+            Int::class -> unsafe.putInt(elementAddress, value as Int)
+            Long::class -> unsafe.putLong(elementAddress, value as Long)
+            Float::class -> unsafe.putFloat(elementAddress, value as Float)
+            Double::class -> unsafe.putDouble(elementAddress, value as Double)
+            else -> error("Cannot set element ${elementInfo.type.simpleName} to array.")
+        }
+
+    }
 }
 
 abstract class PrimitiveArray<E : Any>(address: Address, info: ElementInfo) : Array<E>(address, info) {
