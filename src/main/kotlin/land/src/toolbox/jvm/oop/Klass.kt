@@ -11,7 +11,7 @@ private const val _lh_neutral_value = 0
 private const val _lh_array_tag_type_value = 0.inv()
 private const val _lh_array_tag_shift = (Integer.BYTES * 8) - 2
 
-open class Klass(address: Address) : Struct(address), Oop {
+open class Klass(address: Address) : Struct(address) {
     enum class Type {
         Klass,
         InstanceKlass,

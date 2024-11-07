@@ -1,12 +1,13 @@
+//import land.src.toolbox.local.mirror
 import land.src.toolbox.jvm.VMFlags
 import land.src.toolbox.jvm.VirtualMachine
-import land.src.toolbox.jvm.util.ICONST_0
-import land.src.toolbox.jvm.util.ICONST_1
-import land.src.toolbox.jvm.util.ICONST_2
-import land.src.toolbox.jvm.util.IRETURN
-//import land.src.toolbox.local.mirror
+import land.src.toolbox.jvm.util.CodeReplacer
+import land.src.toolbox.jvm.util.JVM_CONSTANT_Utf8
+import land.src.toolbox.jvm.util.KlassDumper
 import land.src.toolbox.process.impl.LinuxProcessHandle
 import land.src.toolbox.process.impl.WindowsProcessHandle
+import java.io.DataOutputStream
+import java.io.File
 
 @OptIn(ExperimentalStdlibApi::class)
 fun main() {
@@ -32,48 +33,14 @@ fun main() {
 
     val universe = vm.globals.universe
     val testClass123Klass = universe.instanceKlass("TestClass123")!!
-    val method = testClass123Klass.findMethod("a", "()I")!!
 
-    var count = 0
-    println("Making method hot")
-    while (method.compiledMethod == null) {
-        testString.a()
-    }
+    val newClassFile = File("test.class").readBytes()
+    val codeReplacer = CodeReplacer(vm, testClass123Klass.methods.find { it.name == "test" }!!)
 
-    println("_code is: ${method.compiledMethod!!.base.toHexString()}")
+    codeReplacer.replace(newClassFile)
 
-    println("a() = ${testString.a()}");
-
-    {
-        println("Deoptimizing method")
-        // alter bytecode
-        method.constMethod.code[0] = ICONST_0.toByte()
-        method.constMethod.code[1] = IRETURN.toByte()
-        //method.unsafe.putByte(method.constMethod.codeAddress.base, ICONST_0.toByte())
-        //method.unsafe.putByte(method.constMethod.codeAddress.base + 1, IRETURN.toByte())
-        method.deoptimizie()
-    }() // magic
-
-    println("a() = ${testString.a()}");
-
-    println("_code is: ${method.compiledMethod}")
-
-    println("Making method hot")
-    count = 0
-    while (method.compiledMethod == null) {
-        testString.a()
-        count++
-    }
-
-    println("_code is: ${method.compiledMethod!!.base.toHexString()}")
-
-    count = 10
-    while (count-- > 0) {
-        Thread.sleep(100)
-        System.gc()
-    }
-
-    println("a() = ${testString.a()}");
+    val dumper = KlassDumper(vm, testClass123Klass, DataOutputStream(File("testOut.class").outputStream()))
+    dumper.writeClassFileFormat()
 
     proc.detach()
 }

@@ -29,7 +29,7 @@ class ConstMethod(address: Address) : Struct(address) {
     val stackMapData: Array<Byte>? by maybeNullArray("_stackmap_data")
     val hasStackMapTable: Boolean get() = stackMapData != null
 
-    val constants: ConstantPool by nonNull("_constants")
+    var constants: ConstantPool by nonNull("_constants")
 
     val nameIndex: Short by nonNull("_name_index")
     val signatureIndex: Short by nonNull("_signature_index")
@@ -42,6 +42,9 @@ class ConstMethod(address: Address) : Struct(address) {
     val codeEndOffset: Long get() = bytecodeOffset + codeSize
 
     val isNative: Boolean get() = method.isNative
+
+    val name: String get() = constants.getString(nameIndex.toInt())
+    val signature: String get() = constants.getString(signatureIndex.toInt())
 
     val code by lazy {
         Code(Address(this, address.base + bytecodeOffset), codeSize.toInt())

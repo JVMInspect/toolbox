@@ -8,6 +8,7 @@ import land.src.toolbox.jvm.primitive.Oop
 import land.src.toolbox.jvm.primitive.Struct
 import java.io.ByteArrayInputStream
 import java.io.DataInputStream
+import java.io.DataOutputStream
 
 class Symbol(address: Address) : Struct(address), Oop {
     private val _body by offset("_body")
@@ -28,15 +29,19 @@ class Symbol(address: Address) : Struct(address), Oop {
     }
 
     companion object {
-        fun create(string: ByteArray, scope: Scope): Symbol {
-            val newSize = scope.structs.sizeof(Symbol::class) + string.size
-            val address = scope.unsafe.allocateMemory(newSize.toLong())
+        fun create(string: String, scope: Scope): Symbol {
+            val bytes = string.encodeToByteArray()
+            val length = bytes.size
+
+            val type = scope.vm.type("Symbol")
+            val body = type.field("_body")!!.offsetOrAddress
+            val lengthOffset = type.field("_length")!!.offsetOrAddress
+
+            val address = scope.unsafe.allocateMemory((body + length))
+            scope.unsafe.putShort(address + lengthOffset, length.toShort())
+            scope.unsafe.putMemory(address + body, bytes)
 
             val symbol: Symbol = scope.oops(address)!!
-
-            symbol._length = string.size.toShort()
-
-            scope.unsafe.putMemory(address + symbol._body, string)
 
             return symbol
         }

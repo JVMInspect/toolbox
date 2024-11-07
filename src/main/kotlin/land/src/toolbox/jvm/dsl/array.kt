@@ -37,7 +37,7 @@ open class NullableArrayFieldDelegate<E : Any, A : Array<E>>(
     }
 
     open operator fun setValue(struct: Struct, property: KProperty<*>, value: A?) {
-        unsafe.putAddress(address(), value?.address?.base ?: 0)
+        unsafe.putAddress(address(false), value?.address?.base ?: 0)
     }
 }
 

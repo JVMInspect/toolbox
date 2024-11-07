@@ -22,6 +22,9 @@ class Method(address: Address) : Struct(address), Oop {
         offset(adapterOffset)
     }
 
+    val name: String get() = constMethod.name
+    val signature: String get() = constMethod.signature
+
     var compiledMethod: CompiledMethod? by maybeNull("_code")
 
     val isNative: Boolean get() = accessFlags.toInt() and JVM_ACC_NATIVE != 0

@@ -8,7 +8,7 @@ import land.src.toolbox.jvm.util.*
 class InstanceKlass(address: Address) : Klass(address) {
     val majorVersion: Short get() = constantPool.majorVersion
     val minorVersion: Short get() = constantPool.minorVersion
-    val constantPool: ConstantPool by nonNull("_constants")
+    var constantPool: ConstantPool by nonNull("_constants")
 
     val superClass: Klass? by maybeNull("_super")
 

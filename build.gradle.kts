@@ -13,7 +13,10 @@ repositories {
 }
 
 dependencies {
-    api("com.github.jumanji144:blw:4f8c5c2dd4")
+    implementation("software.coley:cafedude-core:2.1.2")
+    // slf4j
+    implementation("org.slf4j:slf4j-api:1.7.32")
+    implementation("org.slf4j:slf4j-simple:1.7.32")
     implementation("org.ow2.asm:asm-tree:9.7")
     implementation("net.java.dev.jna:jna:5.14.0")
     implementation("net.java.dev.jna:jna-platform:5.14.0")

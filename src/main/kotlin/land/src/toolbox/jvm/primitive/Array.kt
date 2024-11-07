@@ -100,11 +100,13 @@ open class Array<E : Any>(address: Address, private val elementInfo: ElementInfo
 
     fun expand(size: Int): Array<E> {
         // old address will remain somewhere in metaspace, can't be freed
-        val entireSize = elementInfo.offset + size * elementSize
+        val entireSize = elementInfo.offset + (length + size) * elementSize
         val newMemory = unsafe.allocateMemory(entireSize.toLong())
         unsafe.copyMemory(address.base, newMemory, elementInfo.offset + length * elementSize)
 
-        return (arrays(newMemory, elementInfo.type, elementInfo.type, elementInfo.isPointer) as Array<E>?)!!
+        unsafe.putInt(newMemory, length + size)
+
+        return (arrays(newMemory, this::class, elementInfo.type, elementInfo.isPointer) as Array<E>?)!!
     }
 
     operator fun set(index: Int, value: E?) {

@@ -39,5 +39,10 @@ class ConstantPoolCache(address: Address) : Struct(address), Oop {
     //val resolvedMethodEntries: Array<ResolvedMethodEntry> by nonNull("_resolved_method_entries")
     //val resolvedReferences: OopHandle by struct("_resolved_references")
 
+    fun expand(entries: List<ConstantPoolCacheEntry>) {
+        // TODO FINISH
+        val newSize = type.size + entries.size * entrySize
+    }
+
 
 }

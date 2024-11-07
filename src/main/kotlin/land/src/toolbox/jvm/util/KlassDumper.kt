@@ -90,9 +90,9 @@ class KlassDumper(
             buf.writeInt(2)
             buf.writeShort(field.initialValueIndex.toInt())
         }
-        if (signatureIndex != 0) {
-            writeSignatureAttribute(field.signatureIndex.toInt())
-        }
+        //if (signatureIndex != 0) {
+        //    writeSignatureAttribute(field.signatureIndex.toInt())
+        //}
         if (annotations != null) {
             writeAnnotationsAttribute("RuntimeVisibleAnnotations", annotations)
         }
