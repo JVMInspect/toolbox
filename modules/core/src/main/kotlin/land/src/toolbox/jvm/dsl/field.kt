@@ -22,7 +22,7 @@ sealed class FieldLocation<V>(val value: V, val isPointer: Boolean) {
 }
 
 interface AddressProvider {
-    operator fun invoke(usePointer: Boolean = true): Long
+    operator fun invoke(dereference: Boolean = true): Long
 }
 
 class NamedFieldAddressProvider<V : Any>(
@@ -30,15 +30,18 @@ class NamedFieldAddressProvider<V : Any>(
     val type: KClass<V>,
     val location: FieldLocation.Name
 ) : AddressProvider, Scope by struct {
-    override fun invoke(usePointer: Boolean): Long {
+    private val isPointer = location.isPointer || structs.isStruct(type)
+    private val fieldAddress by lazy fieldAddress@{
         val name = location.value
-        val field = structFields(struct, name) ?: throw NoSuchFieldException("${struct.vmType.name}#$name")
         val base = struct.address.base
-        val address = if (field.isStatic) field.offsetOrAddress else base + field.offsetOrAddress
+        val field = structFields(struct, name) ?: throw NoSuchFieldException("${struct.vmType.name}#$name")
+        return@fieldAddress if (field.isStatic) field.offsetOrAddress else base + field.offsetOrAddress
+    }
 
-        return if (usePointer && (location.isPointer || structs.isStruct(type)))
-            unsafe.getAddress(address)
-        else address
+    override fun invoke(dereference: Boolean): Long {
+        return if (dereference && isPointer)
+            unsafe.getAddress(fieldAddress)
+        else fieldAddress
     }
 }
 
@@ -47,11 +50,13 @@ class OffsetFieldAddressProvider<V : Any>(
     val type: KClass<V>,
     val location: FieldLocation.Offset
 ) : AddressProvider, Scope by struct {
-    override fun invoke(usePointer: Boolean): Long {
+    private val isPointer = location.isPointer || structs.isStruct(type)
+
+    override fun invoke(dereference: Boolean): Long {
         val base = struct.address.base
         val address = base + location.value
 
-        return if (usePointer && (location.isPointer || structs.isStruct(type)))
+        return if (dereference && isPointer)
             unsafe.getAddress(address)
         else address
     }
@@ -62,9 +67,11 @@ class AddressFieldAddressProvider<V : Any>(
     val type: KClass<V>,
     val location: FieldLocation.Address
 ) : AddressProvider, Scope by struct {
-    override fun invoke(usePointer: Boolean): Long {
+    private val isPointer = location.isPointer || structs.isStruct(type)
+
+    override fun invoke(dereference: Boolean): Long {
         val address = location.value
-        return if (usePointer && (location.isPointer || structs.isStruct(type)))
+        return if (dereference && isPointer)
             unsafe.getAddress(address)
         else address
     }
