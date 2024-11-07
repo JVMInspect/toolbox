@@ -437,17 +437,17 @@ class KlassDumper(
 
         var methodOrder = arrayOfNulls<Int>(numMethods)
 
-        if (ik.methodOrdering != null) {
-            for (index in 0 until numMethods) {
-                val originalIndex = ik.methodOrdering!![index]!!
-                if (originalIndex !in 0..<numMethods) {
-                    println("method order link was broken $originalIndex !in 0..<$numMethods reverting to default.")
-                    methodOrder = arrayOfNulls(numMethods)
-                    break
-                }
-                methodOrder[originalIndex] = index
-            }
-        }
+        //if (ik.methodOrdering != null) {
+        //    for (index in 0 until numMethods) {
+        //        val originalIndex = ik.methodOrdering!![index]!!
+        //        if (originalIndex !in 0..<numMethods) {
+        //            println("method order link was broken $originalIndex !in 0..<$numMethods reverting to default.")
+        //            methodOrder = arrayOfNulls(numMethods)
+        //            break
+        //        }
+        //        methodOrder[originalIndex] = index
+        //    }
+        //}
 
         for (originalIndex in 0 until numMethods) {
             val index = methodOrder.getOrNull(originalIndex) ?: originalIndex

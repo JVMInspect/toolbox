@@ -8,7 +8,7 @@ import land.src.toolbox.jvm.primitive.Oop
 import land.src.toolbox.jvm.primitive.Struct
 
 class ConstantPoolCache(address: Address) : Struct(address), Oop {
-    val length: Int by nonNull("_length")
+    var length: Int by nonNull("_length")
 
     val dataBase: Long get() =
         address.base + type.size
@@ -39,9 +39,24 @@ class ConstantPoolCache(address: Address) : Struct(address), Oop {
     //val resolvedMethodEntries: Array<ResolvedMethodEntry> by nonNull("_resolved_method_entries")
     //val resolvedReferences: OopHandle by struct("_resolved_references")
 
-    fun expand(entries: List<ConstantPoolCacheEntry>) {
+    fun expand(entries: List<ConstantPoolCacheEntry>): ConstantPoolCache {
         // TODO FINISH
-        val newSize = type.size + entries.size * entrySize
+        val newSize = type.size + ((length + entries.size) * entrySize)
+        val newCacheAddress = unsafe.allocateMemory(newSize.toLong())
+        val oldMemory = unsafe.getMemory(address.base, type.size + (length * entrySize))
+        unsafe.putMemory(newCacheAddress, oldMemory)
+
+        for ((index, entry) in entries.withIndex()) {
+            val entryOffset = newCacheAddress + type.size + ((length + index) * entrySize)
+            val entryMemory = unsafe.getMemory(entry.base, entrySize)
+            unsafe.putMemory(entryOffset, entryMemory)
+            println("put $entry at index $index (entry base: $entryOffset, cpIndex: ${entry.cpIndex})")
+        }
+
+        val newCache = ConstantPoolCache(Address(this, newCacheAddress))
+        newCache.length = length + entries.size
+
+        return newCache
     }
 
 

@@ -87,14 +87,13 @@ class CodeReplacer(val vm: VirtualMachine, val target: Method) {
 
         val bytecode = InstructionWriter().writeCode(code.instructions)
 
-        // TODO: resize the code array if needed
+        // TODO: resize the code array if needed (realloc const method)
         val constMethod = target.constMethod
         for ((index, byte) in bytecode.withIndex()) {
             constMethod.code[index] = byte
         }
 
         target.constMethod.constants = expandInformation.pool
-
         target.constMethod.constants.poolHolder.constantPool = expandInformation.pool
     }
 

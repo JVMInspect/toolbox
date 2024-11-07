@@ -37,7 +37,13 @@ fun main() {
     val newClassFile = File("test.class").readBytes()
     val codeReplacer = CodeReplacer(vm, testClass123Klass.methods.find { it.name == "test" }!!)
 
+    println(testClass123Klass.constantPool.address.base)
+
     codeReplacer.replace(newClassFile)
+
+    println(testClass123Klass.constantPool.address.base)
+
+    testString.test()
 
     val dumper = KlassDumper(vm, testClass123Klass, DataOutputStream(File("testOut.class").outputStream()))
     dumper.writeClassFileFormat()

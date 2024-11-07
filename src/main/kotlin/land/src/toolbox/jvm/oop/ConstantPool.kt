@@ -37,7 +37,7 @@ class ConstantPool(address: Address) : Struct(address), Oop {
     var tags: Array<Byte> by nonNullArray("_tags")
     val poolHolder: InstanceKlass by nonNull("_pool_holder")
     val operands: Array<Short>? by maybeNullArray("_operands")
-    val cache: ConstantPoolCache? by maybeNull("_cache")
+    var cache: ConstantPoolCache? by maybeNull("_cache")
     val genericSignatureIndex: Short by nonNull("_generic_signature_index")
     val resolvedKlasses: Array<Klass> by nonNullArray("_resolved_klasses")
     val sourceFileNameIndex: Short by nonNull("_source_file_name_index")
@@ -348,6 +348,9 @@ class ConstantPool(address: Address) : Struct(address), Oop {
         // create new tags array
         val expandedTags = tags.expand(entries.size)
         newPool.tags = expandedTags
+        for (tag in newPool.tags) {
+            println("tag: $tag")
+        }
 
         newPool.length = length + entries.size
 
@@ -356,12 +359,14 @@ class ConstantPool(address: Address) : Struct(address), Oop {
         val cacheEntries = mutableListOf<ConstantPoolCacheEntry>()
         val cacheMapping = mutableMapOf<Int, Int>()
 
-        fun allocateEntry(index: Int): Int {
+        fun allocateEntry(tag: Int, index: Int): Int {
             val entryAddress = unsafe.allocateMemory(structs.sizeof(ConstantPoolCacheEntry::class).toLong())
             val entry: ConstantPoolCacheEntry = structs(entryAddress)!!
             cacheEntries.add(entry)
 
-            entry.setCpIndex(index)
+            if (tag != JVM_CONSTANT_String) {
+                entry.setCpIndex(index)
+            }
 
             return cacheEntries.size - 1
         }
@@ -430,7 +435,7 @@ class ConstantPool(address: Address) : Struct(address), Oop {
                 is ConstRef -> {
                     newPool[newIndex] = (entry.classRef.index shl 16) or entry.nameType.index
                     // build constant pool entry
-                    val cacheIndex = allocateEntry(newIndex)
+                    val cacheIndex = allocateEntry(entry.tag, newIndex)
 
                     cacheMapping[newIndex] = cacheIndex
                 }
@@ -448,6 +453,7 @@ class ConstantPool(address: Address) : Struct(address), Oop {
         }
 
         val newCache = cache!!.expand(cacheEntries)
+        newPool.cache = newCache
 
         return ExpandInformation(cacheMapping, newPool)
     }
