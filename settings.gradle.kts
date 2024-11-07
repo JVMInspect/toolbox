@@ -1,3 +1,6 @@
 rootProject.name = "jvm-toolbox"
 
-include("recaf-plugin")
+include("modules:api")
+include("modules:core")
+include("modules:implementation")
+include("modules:implementation:17")
