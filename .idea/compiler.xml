@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="CompilerConfiguration">
-    <bytecodeTargetLevel target="17" />
+    <bytecodeTargetLevel target="17">
+      <module name="jvm-toolbox.recaf-plugin" target="22" />
+      <module name="jvm-toolbox.recaf-plugin.main" target="22" />
+      <module name="jvm-toolbox.recaf-plugin.test" target="22" />
+    </bytecodeTargetLevel>
   </component>
 </project>
