@@ -27,6 +27,9 @@ class VirtualMachine(private val process: ProcessHandle, private val structsFile
     override val arrays = Arrays(this)
     override val structFields = Fields(this)
     override val structs = Structs(this)
+    override val universe = Universe(this)
+    override val vmClasses = VMClasses(this)
+    override val objects = Objects(this)
 
     init {
         // either read the structs from the file or from the process

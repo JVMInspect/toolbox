@@ -6,10 +6,8 @@ import land.src.toolbox.jvm.oop.VMSymbols
 import land.src.toolbox.jvm.primitive.Address
 
 class Globals(val scope: Scope) {
-    private val placeholder = Address(scope, Address.PLACEHOLDER)
-
-    val universe = Universe(placeholder)
-    val compressedOops = CompressedOops(placeholder)
-    val compressedKlassPointers = CompressedKlassPointers(placeholder)
-    val vmSymbols = VMSymbols(placeholder)
+    val universe = Universe(scope.placeholder)
+    val compressedOops = CompressedOops(scope.placeholder)
+    val compressedKlassPointers = CompressedKlassPointers(scope.placeholder)
+    val vmSymbols = VMSymbols(scope.placeholder)
 }

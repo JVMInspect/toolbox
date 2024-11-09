@@ -39,14 +39,21 @@ fun main() {
 
     println(testClass123Klass.constantPool.address.base)
 
-    codeReplacer.replace(newClassFile)
+    testString.test()
 
-    println(testClass123Klass.constantPool.address.base)
+    codeReplacer.replace(newClassFile)
 
     testString.test()
 
-    val dumper = KlassDumper(vm, testClass123Klass, DataOutputStream(File("testOut.class").outputStream()))
+    println(testClass123Klass.constantPool.address.base)
+
+    val outFile = File("testOut.class")
+    val outFileStream = DataOutputStream(outFile.outputStream())
+    val dumper = KlassDumper(vm, testClass123Klass, outFileStream)
     dumper.writeClassFileFormat()
+
+    outFileStream.flush()
+    outFileStream.close()
 
     proc.detach()
 }

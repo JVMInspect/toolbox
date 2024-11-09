@@ -1,11 +1,31 @@
 package land.src.toolbox.jvm.oop
 
 import land.src.toolbox.jvm.primitive.Address
+import land.src.toolbox.jvm.util.*
+import land.src.toolbox.jvm.util.roundTo
+import kotlin.reflect.KClass
+import kotlin.reflect.full.isSubclassOf
+
+fun elemBytes(type: Int): Int {
+    return when (type) {
+        T_BYTE -> 1
+        T_CHAR -> 2
+        T_SHORT -> 2
+        T_INT -> 4
+        T_LONG -> 8
+        T_FLOAT -> 4
+        T_DOUBLE -> 8
+        T_OBJECT -> 8
+        T_NARROWOOP -> 4
+        T_NARROWKLASS -> 4
+        else -> 8
+    }
+}
 
 class ArrayOopDesc(address: Address) : OopDesc(address) {
     override val typeName: String = "arrayOopDesc"
 
-    val length: Int get() {
+    var length: Int get() {
         // when compressed class pointers is used the length is stored in the top half of the _metadata._narrow_klass field
         return if (useCompressedKlassPointers) {
             _klass.base.ushr(32).toInt()
@@ -14,12 +34,72 @@ class ArrayOopDesc(address: Address) : OopDesc(address) {
             getField<Int>(structs.sizeof(ArrayOopDesc::class))
         }
     }
+    set(value) {
+        if (useCompressedKlassPointers) {
+            unsafe.putAddress(address.base + _klassOffset, (value.toLong() shl 32) or (_klass.base and 0xFFFFFFFF))
+        } else {
+            setField(type.size, value)
+        }
+    }
+
+    private val headerSize: Int by lazy {
+        type.size
+    }
+
+    fun headerSize(type: Int): Int {
+        val header = headerSize
+        if (elementShouldBeAligned(type)) {
+            return roundTo(header, 8)
+        }
+        return header
+    }
+
+    private fun elementShouldBeAligned(type: Int): Boolean {
+        return type == T_DOUBLE || type == T_LONG
+    }
+
+    fun mapType(type: KClass<*>): Int {
+        return when {
+            type == Byte::class -> T_BYTE
+            type == Char::class -> T_CHAR
+            type == Short::class -> T_SHORT
+            type == Int::class -> T_INT
+            type == Long::class -> T_LONG
+            type == Float::class -> T_FLOAT
+            type == Double::class -> T_DOUBLE
+            type.isSubclassOf(OopDesc::class) -> if (useCompressedOops) T_NARROWOOP else T_OBJECT
+            type.isSubclassOf(Klass::class) -> if (useCompressedKlassPointers) T_NARROWKLASS else T_OBJECT
+            else -> T_OBJECT
+        }
+    }
+
+    fun arraySize(type: Int): Int {
+        return length * elemBytes(type) + headerSize(type)
+    }
+
+    fun expand(type: Int, by: Int): ArrayOopDesc {
+        val oldSize = arraySize(type)
+        val newSize = oldSize + by * elemBytes(type)
+        val newAddress = unsafe.allocateMemory(newSize.toLong())
+        unsafe.copyMemory(address.base, newAddress, oldSize)
+
+        val newArray = ArrayOopDesc(Address(this, newAddress))
+        newArray.length = length + by
+
+        return newArray
+    }
 
     inline operator fun <reified T: Any> get(index: Int): T {
-        return getField<T>(structs.sizeof(ArrayOopDesc::class) + index * 8)
+        val type = mapType(T::class)
+        val base = headerSize(type)
+        val bytes = elemBytes(type)
+        return getField<T>(base + index * bytes)
     }
 
     inline operator fun <reified T: Any> set(index: Int, value: T) {
-        setField(structs.sizeof(ArrayOopDesc::class) + index * 8, value)
+        val type = mapType(T::class)
+        val base = headerSize(type)
+        val bytes = elemBytes(type)
+        setField(base + index * bytes, value)
     }
 }

@@ -6,6 +6,8 @@ import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Array
 import land.src.toolbox.jvm.primitive.Oop
 import land.src.toolbox.jvm.primitive.Struct
+import land.src.toolbox.jvm.util.T_NARROWOOP
+import land.src.toolbox.jvm.util.T_OBJECT
 
 class ConstantPoolCache(address: Address) : Struct(address), Oop {
     var length: Int by nonNull("_length")
@@ -27,7 +29,7 @@ class ConstantPoolCache(address: Address) : Struct(address), Oop {
     }
 
     //val constantPool: ConstantPool by nonNull("_constant_pool")
-    val referenceMap: Array<Short>? by maybeNullArray("_reference_map")
+    var referenceMap: Array<Short>? by maybeNullArray("_reference_map")
     private val _resolvedReferences: OopHandle? by maybeNull {
         offset(type.field("_constant_pool")!!.offsetOrAddress + pointerSize)
     }
@@ -39,7 +41,7 @@ class ConstantPoolCache(address: Address) : Struct(address), Oop {
     //val resolvedMethodEntries: Array<ResolvedMethodEntry> by nonNull("_resolved_method_entries")
     //val resolvedReferences: OopHandle by struct("_resolved_references")
 
-    fun expand(entries: List<ConstantPoolCacheEntry>): ConstantPoolCache {
+    fun expand(entries: List<ConstantPoolCacheEntry>, references: List<Short>): ConstantPoolCache {
         // TODO FINISH
         val newSize = type.size + ((length + entries.size) * entrySize)
         val newCacheAddress = unsafe.allocateMemory(newSize.toLong())
@@ -53,8 +55,36 @@ class ConstantPoolCache(address: Address) : Struct(address), Oop {
             println("put $entry at index $index (entry base: $entryOffset, cpIndex: ${entry.cpIndex})")
         }
 
+        // we also need to expand the _reference_map array wit the new references
+        val oldReferenceSize = referenceMap?.length ?: 0
+        val newReferenceMap: Array<Short> = if (referenceMap == null) {
+            arrays.allocate(references.size)
+        } else {
+            referenceMap!!.expand(references.size)
+        }
+        for ((index, reference) in references.withIndex()) {
+            newReferenceMap[oldReferenceSize + index] = reference
+        }
+
+        // also reallocate the resolved references array
+        // a bit more difficult as it's a array oop, we need to reallocate the array and increase its length
+        val arrType = if (globals.compressedOops.isCompressedOops()) T_NARROWOOP else T_OBJECT
+
+        val oldLength = resolvedReferences?.length ?: 0
+        val newResolvedReferences = if (resolvedReferences == null) {
+            objects.allocateArray(arrType, references.size)
+        } else {
+            resolvedReferences!!.expand(arrType, references.size)
+        }
+        // just fill it with NULL
+        for (i in oldLength until newResolvedReferences.length) {
+            newResolvedReferences[i] = if (arrType == T_OBJECT) 0L else 0
+        }
+
         val newCache = ConstantPoolCache(Address(this, newCacheAddress))
         newCache.length = length + entries.size
+        newCache.referenceMap = newReferenceMap
+        newCache._resolvedReferences!!.obj = newResolvedReferences
 
         return newCache
     }

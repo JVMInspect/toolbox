@@ -35,7 +35,7 @@ class ConstMethod(address: Address) : Struct(address) {
     val signatureIndex: Short by nonNull("_signature_index")
     val idNum: Short by nonNull("_method_idnum")
 
-    val codeSize: Short by nonNull("_code_size")
+    var codeSize: Short by nonNull("_code_size")
     val constMethodSize: Int by nonNull("_constMethod_size")
 
     val bytecodeOffset: Long get() = type.size.toLong()
@@ -48,6 +48,11 @@ class ConstMethod(address: Address) : Struct(address) {
 
     val code by lazy {
         Code(Address(this, address.base + bytecodeOffset), codeSize.toInt())
+    }
+
+    fun setCode(bytes: ByteArray) {
+        unsafe.putMemory(address.base + bytecodeOffset, bytes)
+        codeSize = bytes.size.toShort()
     }
 
     val codeAddress by lazy {

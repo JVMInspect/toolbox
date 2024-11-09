@@ -4,6 +4,7 @@ import land.src.toolbox.jvm.oop.*
 import java.util.LinkedList
 
 class Universe(val scope: Scope) {
+
     @OptIn(ExperimentalStdlibApi::class)
     val loadedKlasses: Map<String, Klass> by lazy {
         val result: MutableMap<String, Klass> = mutableMapOf()

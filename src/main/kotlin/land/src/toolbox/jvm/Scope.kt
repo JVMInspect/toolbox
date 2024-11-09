@@ -8,6 +8,10 @@ import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.process.ProcessUnsafe
 
 interface Scope {
+
+    val placeholder: Address
+        get() = Address(this, Address.PLACEHOLDER)
+
     /**
      * Access to oops, use `oops<T>(address)` to access oops from cache.
      */
@@ -47,6 +51,21 @@ interface Scope {
      * Direct access to the VM's encompassing process space.
      */
     val unsafe: ProcessUnsafe
+
+    /**
+     * The universe
+     */
+    val universe: Universe
+
+    /**
+     * The classes
+     */
+    val vmClasses: VMClasses
+
+    /**
+     * Object allocation
+     */
+    val objects: Objects
 
     val pointerSize: Long get() = if (vm.is64Bit) 8 else 4
 }

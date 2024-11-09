@@ -7,4 +7,8 @@ import land.src.toolbox.jvm.primitive.Struct
 class CompressedKlassPointers(address: Address) : Struct(address) {
     val narrowKlassBase: Long by nonNull("_narrow_klass._base")
     val narrowKlassShift: Int by nonNull("_narrow_klass._shift")
+
+    fun isCompressedKlassPointers(): Boolean {
+        return narrowKlassBase != 0L || narrowKlassShift != 0
+    }
 }

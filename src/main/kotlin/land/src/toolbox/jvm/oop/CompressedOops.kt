@@ -7,4 +7,8 @@ import land.src.toolbox.jvm.primitive.Struct
 class CompressedOops(address: Address) : Struct(address) {
     val narrowOopBase: Long by nonNull("_narrow_oop._base")
     val narrowOopShift: Int by nonNull("_narrow_oop._shift")
+
+    fun isCompressedOops(): Boolean {
+        return narrowOopBase != 0L || narrowOopShift != 0
+    }
 }

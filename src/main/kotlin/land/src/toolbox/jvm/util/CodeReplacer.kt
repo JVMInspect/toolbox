@@ -10,10 +10,23 @@ import software.coley.cafedude.classfile.constant.CpInvokeDynamic
 import software.coley.cafedude.classfile.constant.CpNameType
 import software.coley.cafedude.classfile.constant.CpString
 import software.coley.cafedude.classfile.instruction.CpRefInstruction
+import software.coley.cafedude.classfile.instruction.Instruction
 import software.coley.cafedude.io.ClassFileReader
+import software.coley.cafedude.io.FallbackInstructionWriter
 import software.coley.cafedude.io.InstructionWriter
+import software.coley.cafedude.util.GrowingByteBuffer
 
 class CodeReplacer(val vm: VirtualMachine, val target: Method) {
+
+    class CustomCpRefInstruction(opcode: Int, entry: CpRefInstruction) : CpRefInstruction(opcode, entry.entry) {
+        override fun computeSize(): Int {
+            if (opcode == FAST_ALDC) {
+                return 1 + 1
+            }
+
+            return super.computeSize()
+        }
+    }
 
     fun replace(classBytes: ByteArray) {
         // load the bytecode from the file and replace the target method with it
@@ -82,16 +95,50 @@ class CodeReplacer(val vm: VirtualMachine, val target: Method) {
 
                     entry.index = cacheIndexRev.toInt()
                 }
+                in LDC..LDC_W -> {
+                    val entry = (it as CpRefInstruction).entry
+
+                    if (entry !is CpString) return@forEach
+
+                    val refIndex = expandInformation.referenceMapping[entry.index] ?: return@forEach
+
+                    it.opcode = FAST_ALDC + (it.opcode - LDC)
+
+                    if (it.opcode == FAST_ALDC) {
+                        entry.index = refIndex
+                    } else {
+                        entry.index = java.lang.Short.reverseBytes(refIndex.toShort()).toInt()
+                    }
+                }
             }
         }
 
-        val bytecode = InstructionWriter().writeCode(code.instructions)
+        // replace all instructions with opcode FAST_ALDC with CustomCpRefInstruction
+        code.instructions = code.instructions.map {
+            if (it.opcode == FAST_ALDC) {
+                CustomCpRefInstruction(it.opcode, it as CpRefInstruction)
+            } else {
+                it
+            }
+        }
+
+        val bytecode = InstructionWriter(object : FallbackInstructionWriter {
+            override fun write(
+                instruction: Instruction?,
+                buffer: GrowingByteBuffer?
+            ) {
+                when(instruction!!.opcode) {
+                    FAST_ALDC -> {
+                        buffer!!.put((instruction as CpRefInstruction).entry.index)
+                    }
+                }
+            }
+
+        }).writeCode(code.instructions)
 
         // TODO: resize the code array if needed (realloc const method)
         val constMethod = target.constMethod
-        for ((index, byte) in bytecode.withIndex()) {
-            constMethod.code[index] = byte
-        }
+        constMethod.setCode(bytecode)
 
         target.constMethod.constants = expandInformation.pool
         target.constMethod.constants.poolHolder.constantPool = expandInformation.pool

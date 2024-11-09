@@ -20,9 +20,9 @@ typealias ArrayAndElementTypes = Pair<KClass<*>, Array.ElementInfo>
 class Arrays(scope: Scope) : Scope by scope {
     private val cache = mutableMapOf<Long, Array<*>>()
     private val elements = mutableMapOf<KClass<*>, KClass<*>>()
-    private val factories = mutableMapOf<ArrayAndElementTypes, Factory<*>>()
+    val factories = mutableMapOf<ArrayAndElementTypes, Factory<*>>()
 
-    private class Factory<A : Array<*>>(arrayType: KClass<*>, private val elementInfo: Array.ElementInfo) {
+    class Factory<A : Array<*>>(arrayType: KClass<*>, private val elementInfo: Array.ElementInfo) {
         private val handle = MethodHandles.lookup()
             .findConstructor(arrayType.java, ConstructorType)
 
@@ -58,7 +58,7 @@ class Arrays(scope: Scope) : Scope by scope {
         }
     }
 
-    private fun <E : Any> ElementInfo(elementType: KClass<E>, isPointer: Boolean): Array.ElementInfo = Array.ElementInfo(
+    fun <E : Any> ElementInfo(elementType: KClass<E>, isPointer: Boolean): Array.ElementInfo = Array.ElementInfo(
         type = elementType,
         size = elementSize(elementType),
         offset = elementOffset(elementType),
@@ -95,4 +95,26 @@ class Arrays(scope: Scope) : Scope by scope {
         address: Long,
         isElementPointer: Boolean
     ): Array<E>? = this(address, A::class, E::class, isElementPointer) as? Array<E>?
+
+    fun allocate0(
+        length: Int,
+        arrayType: KClass<*>,
+        elementType: KClass<*>,
+        isElementPointer: Boolean
+    ): Array<*> {
+        val info = ElementInfo(elementType, isElementPointer)
+
+        val sizeOfHeader = info.offset + info.size
+        val sizeOfContent = length * info.size
+        val address = unsafe.allocateMemory((sizeOfHeader + sizeOfContent).toLong())
+
+        val factory = factories.computeIfAbsent(arrayType to info) {
+            Factory<Array<*>>(arrayType, info)
+        }
+
+        return factory(Address(this, address))
+    }
+
+    inline fun <reified E : Any, reified A : Array<E>> allocate(length: Int, isElementPointer: Boolean = false): Array<E> =
+        allocate0(length, E::class, A::class, isElementPointer) as A
 }

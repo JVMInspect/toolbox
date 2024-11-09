@@ -39,9 +39,8 @@ open class Array<E : Any>(address: Address, private val elementInfo: ElementInfo
      val elementSize: Int = elementInfo.size
      val elementBase: Long = address.base + elementInfo.offset
 
-    val length by lazy {
-        unsafe.getInt(address.base)
-    }
+    var length get() = unsafe.getInt(address.base)
+        set(value) = unsafe.putInt(address.base, value)
 
     val bytes by lazy {
         unsafe.getMemory(elementBase, length * elementSize)

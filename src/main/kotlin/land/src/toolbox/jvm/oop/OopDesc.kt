@@ -1,19 +1,21 @@
 package land.src.toolbox.jvm.oop
 
-import land.src.toolbox.jvm.dsl.address
 import land.src.toolbox.jvm.dsl.nonNull
+import land.src.toolbox.jvm.dsl.offset
 import land.src.toolbox.jvm.primitive.Address
-import land.src.toolbox.jvm.primitive.Oop
 import land.src.toolbox.jvm.primitive.Struct
 
 open class OopDesc(address: Address) : Struct(address) {
     override val typeName: String = "oopDesc"
 
-    protected val _klass: Klass by nonNull("_metadata._klass")
+    var markWord: Long by nonNull("_mark")
+    protected var _klass: Klass by nonNull("_metadata._klass")
+    protected val _klassOffset by offset("_metadata._klass")
 
-    var useCompressedKlassPointers = true
+    val useCompressedKlassPointers = globals.compressedKlassPointers.isCompressedKlassPointers()
+    val useCompressedOops = globals.compressedOops.isCompressedOops()
 
-    val klass: Klass get() {
+    var klass: Klass get() {
         if (!useCompressedKlassPointers)
             return _klass
 
@@ -23,6 +25,16 @@ open class OopDesc(address: Address) : Struct(address) {
         val klass = narrowKlassBase + (narrowKlass shl narrowKlassShift)
 
         return structs<Klass>(klass)!!
+    }
+    set(value) {
+        if (!useCompressedKlassPointers)
+            _klass = value
+
+        val klassBase = globals.compressedKlassPointers.narrowKlassBase
+        val klassShift = globals.compressedKlassPointers.narrowKlassShift
+        val narrowKlass = (value.address.base - klassBase) ushr klassShift
+
+        unsafe.putAddress(_klassOffset, narrowKlass)
     }
 
     inline fun <reified V : Any> getField(offset: Int): V {

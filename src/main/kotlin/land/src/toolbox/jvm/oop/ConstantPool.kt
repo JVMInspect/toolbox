@@ -323,10 +323,10 @@ class ConstantPool(address: Address) : Struct(address), Oop {
     fun getUtf8SymbolIndex(string: String): Int = utf8SymbolMap[string] ?: error("Symbol not present $string")
     fun getClassSymbolIndex(string: String): Int = classSymbolMap[string] ?: error("Class not present $string")
 
-    data class ExpandInformation(val cacheMapping: Map<Int, Int>, val pool: ConstantPool)
+    data class ExpandInformation(val cacheMapping: Map<Int, Int>, val referenceMapping: Map<Int, Int>, val pool: ConstantPool)
 
     fun expand(entries: MutableList<CpEntry>): ExpandInformation {
-        if (entries.isEmpty()) return ExpandInformation(emptyMap(), this)
+        if (entries.isEmpty()) return ExpandInformation(emptyMap(), emptyMap(), this)
         if (entries.size + length > 0xffff) error("Constant pool size limit exceeded")
 
         // simple optimization, remove strings already in the pool
@@ -358,17 +358,26 @@ class ConstantPool(address: Address) : Struct(address), Oop {
 
         val cacheEntries = mutableListOf<ConstantPoolCacheEntry>()
         val cacheMapping = mutableMapOf<Int, Int>()
+        val referenceMapping = mutableMapOf<Int, Int>()
+        val referenceMap = mutableListOf<Short>()
+
+        var cacheSize = cache!!.length
+        var refsSize = cache!!.referenceMap!!.length
 
         fun allocateEntry(tag: Int, index: Int): Int {
             val entryAddress = unsafe.allocateMemory(structs.sizeof(ConstantPoolCacheEntry::class).toLong())
             val entry: ConstantPoolCacheEntry = structs(entryAddress)!!
             cacheEntries.add(entry)
 
-            if (tag != JVM_CONSTANT_String) {
-                entry.setCpIndex(index)
-            }
+            entry.setCpIndex(index)
 
-            return cacheEntries.size - 1
+            return cacheSize + cacheEntries.size - 1
+        }
+
+        fun allocateRefEntry(index: Int): Int {
+            referenceMap.add(index.toShort())
+
+            return refsSize + referenceMap.size - 1
         }
 
         val expanded = entries.map { entry ->
@@ -424,6 +433,9 @@ class ConstantPool(address: Address) : Struct(address), Oop {
 
                 is CpString -> {
                     val symbol = symbolMap[entry.string.index] ?: error("Symbol not found")
+                    val stringIndex = allocateRefEntry(entry.string.index)
+
+                    referenceMapping[newIndex] = stringIndex
 
                     newPool[newIndex] = symbol.address
                 }
@@ -433,7 +445,7 @@ class ConstantPool(address: Address) : Struct(address), Oop {
                 }
 
                 is ConstRef -> {
-                    newPool[newIndex] = (entry.classRef.index shl 16) or entry.nameType.index
+                    newPool[newIndex] = (entry.nameType.index shl 16) or entry.classRef.index
                     // build constant pool entry
                     val cacheIndex = allocateEntry(entry.tag, newIndex)
 
@@ -452,10 +464,12 @@ class ConstantPool(address: Address) : Struct(address), Oop {
             }
         }
 
-        val newCache = cache!!.expand(cacheEntries)
+        // TODO: expand reference map and resolved entries map in cp cache
+
+        val newCache = cache!!.expand(cacheEntries, referenceMap)
         newPool.cache = newCache
 
-        return ExpandInformation(cacheMapping, newPool)
+        return ExpandInformation(cacheMapping, referenceMapping, newPool)
     }
 
     private inline operator fun <reified T> set(index: Int, value: T) {
