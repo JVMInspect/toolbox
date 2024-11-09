@@ -73,9 +73,9 @@ class KlassDumper(
         if (initialValueIndex != 0) {
             ++attributesCount
         }
-        if (signatureIndex != 0) {
-            ++attributesCount
-        }
+        //if (signatureIndex != 0) {
+        //    ++attributesCount
+        //}
         if (annotations != null) {
             ++attributesCount
         }
