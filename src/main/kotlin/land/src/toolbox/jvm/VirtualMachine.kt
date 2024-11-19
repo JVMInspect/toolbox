@@ -22,7 +22,7 @@ class VirtualMachine(private val process: ProcessHandle, private val structsFile
     override val vm = this
     override val version: VMVersion
     override val unsafe = process.unsafe
-    override val globals = Globals(this)
+    override val globals by lazy { Globals(this) }
     override val oops = Oops(this)
     override val arrays = Arrays(this)
     override val structFields = Fields(this)
