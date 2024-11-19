@@ -13,4 +13,7 @@ class Symbols(process: ProcessHandle) {
 
     fun lookup(name: String) =
         checkNotNull(libJvm.findProcedure(name)) { "Failed to find symbol $name" }
+
+    fun lookupOrNull(name: String) =
+        libJvm.findProcedure(name)
 }

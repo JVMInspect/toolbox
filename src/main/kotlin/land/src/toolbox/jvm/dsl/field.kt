@@ -5,7 +5,6 @@ import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Addressable
 import land.src.toolbox.jvm.primitive.Oop
 import land.src.toolbox.jvm.primitive.Struct
-import land.src.toolbox.jvm.util.ptr
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty0

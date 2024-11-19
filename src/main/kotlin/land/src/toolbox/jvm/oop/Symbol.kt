@@ -11,6 +11,7 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 
 class Symbol(address: Address) : Struct(address), Oop {
+    private var _hash_and_refcount: Int by nonNull("_hash_and_refcount")
     private val _body by offset("_body")
     private var _length: Short by nonNull("_length")
 
@@ -29,6 +30,24 @@ class Symbol(address: Address) : Struct(address), Oop {
     }
 
     companion object {
+        /*
+          static unsigned int hash_code(const jbyte* s, int len) {
+    unsigned int h = 0;
+    while (len-- > 0) {
+      h = 31*h + (((unsigned int) *s) & 0xFF);
+      s++;
+    }
+    return h;
+  }
+         */
+        fun hash(byteArray: ByteArray): Int {
+            var h = 0
+            for (b in byteArray) {
+                h = 31 * h + (b.toInt() and 0xFF)
+            }
+            return h
+        }
+
         fun create(string: String, scope: Scope): Symbol {
             val bytes = string.encodeToByteArray()
             val length = bytes.size
@@ -42,6 +61,8 @@ class Symbol(address: Address) : Struct(address), Oop {
             scope.unsafe.putMemory(address + body, bytes)
 
             val symbol: Symbol = scope.oops(address)!!
+
+            symbol._hash_and_refcount = 0x1234FFFF
 
             return symbol
         }

@@ -5,10 +5,10 @@ import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Struct
 
 class VMSymbols(address: Address): Struct(address) {
-    private val symbols: Long by address("_vm_symbols[0]")
+    private val vmSymbols: Long by address("_vm_symbols[0]")
 
     fun lookupSymbol(index: Int): Symbol {
-        val symbolAddress = unsafe.getAddress(symbols + index * type.size)
+        val symbolAddress = unsafe.getAddress(vmSymbols + index * type.size)
         return oops(symbolAddress)!!
     }
 

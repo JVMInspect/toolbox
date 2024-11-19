@@ -367,6 +367,9 @@ class ConstantPool(address: Address) : Struct(address), Oop {
         fun allocateEntry(tag: Int, index: Int): Int {
             val entryAddress = unsafe.allocateMemory(structs.sizeof(ConstantPoolCacheEntry::class).toLong())
             val entry: ConstantPoolCacheEntry = structs(entryAddress)!!
+            entry.f1 = 0
+            entry.f2 = 0
+            entry.flags = 0
             cacheEntries.add(entry)
 
             entry.setCpIndex(index)
@@ -433,7 +436,7 @@ class ConstantPool(address: Address) : Struct(address), Oop {
 
                 is CpString -> {
                     val symbol = symbolMap[entry.string.index] ?: error("Symbol not found")
-                    val stringIndex = allocateRefEntry(entry.string.index)
+                    val stringIndex = allocateRefEntry(entry.index)
 
                     referenceMapping[newIndex] = stringIndex
 
@@ -441,7 +444,7 @@ class ConstantPool(address: Address) : Struct(address), Oop {
                 }
 
                 is CpNameType -> {
-                    newPool[newIndex] = (entry.name.index shl 16) or entry.type.index
+                    newPool[newIndex] = (entry.type.index shl 16) or entry.name.index
                 }
 
                 is ConstRef -> {

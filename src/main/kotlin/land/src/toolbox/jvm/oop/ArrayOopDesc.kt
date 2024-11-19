@@ -80,7 +80,7 @@ class ArrayOopDesc(address: Address) : OopDesc(address) {
     fun expand(type: Int, by: Int): ArrayOopDesc {
         val oldSize = arraySize(type)
         val newSize = oldSize + by * elemBytes(type)
-        val newAddress = unsafe.allocateMemory(newSize.toLong())
+        val newAddress = objects.allocateMemory(newSize)
         unsafe.copyMemory(address.base, newAddress, oldSize)
 
         val newArray = ArrayOopDesc(Address(this, newAddress))

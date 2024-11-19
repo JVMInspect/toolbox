@@ -31,13 +31,21 @@ class Objects(val scope: Scope) {
         oop.markWord = 0 shr 1 or 1 // no_monitor_hash | no_bias_lock
     }
 
+    fun allocateMemory(size: Int): Long {
+        // access the current heap
+        val heap = scope.universe.collectedHeap!!
+        val heapWord = heap.allocate(size.toLong())
+
+        return heapWord.toLong()
+    }
+
     fun allocateArray(type: Int, length: Int): ArrayOopDesc {
         val elemSize = elemBytes(type)
         val headerSize = ArrayOopDesc(scope.placeholder).headerSize(type)
 
         val size = headerSize + elemSize * length
 
-        val address = scope.unsafe.allocateMemory(size.toLong())
+        val address = allocateMemory(size)
 
         val array = ArrayOopDesc(Address(scope, address))
 

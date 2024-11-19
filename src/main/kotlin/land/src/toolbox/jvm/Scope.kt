@@ -5,6 +5,7 @@ import land.src.toolbox.jvm.cache.Fields
 import land.src.toolbox.jvm.cache.Oops
 import land.src.toolbox.jvm.cache.Structs
 import land.src.toolbox.jvm.primitive.Address
+import land.src.toolbox.jvm.util.DynamicTypeResolver
 import land.src.toolbox.process.ProcessUnsafe
 
 interface Scope {
@@ -66,6 +67,16 @@ interface Scope {
      * Object allocation
      */
     val objects: Objects
+
+    /**
+     * Native process symbol lookup
+     */
+    val symbols: Symbols
+
+    /**
+     * Dynamic type resolution
+     */
+    val dynamicTypeResolver: DynamicTypeResolver
 
     val pointerSize: Long get() = if (vm.is64Bit) 8 else 4
 }

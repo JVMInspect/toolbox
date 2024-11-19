@@ -159,7 +159,13 @@ class ProcessUnsafe(private val process: ProcessHandle) {
     }
 
     fun allocateMemory(size: Long): Long {
-        return process.allocate(size)
+        val memory = realUnsafe.allocateMemory(size)
+        check(memory != 0L) {
+            "allocateMemory"
+        }
+        // zero out the memory
+        putMemory(memory, ByteArray(size.toInt()))
+        return memory
     }
 
     private val realUnsafe: sun.misc.Unsafe get() {

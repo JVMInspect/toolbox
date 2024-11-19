@@ -8,6 +8,7 @@ import land.src.toolbox.process.ProcessHandles
 import land.src.toolbox.process.ProcessUnsafe
 import land.src.toolbox.util.Linux
 import land.src.toolbox.util.iovec
+import net.fornwall.jelf.ElfFile
 import java.io.File
 import java.io.RandomAccessFile
 import java.nio.channels.FileChannel
@@ -78,7 +79,12 @@ class LinuxProcessHandle(override val pid: Int, override val local: Boolean) : P
 
         return reader.lineSequence().firstOrNull { it.contains(library) }?.let {
             val path = '/' + it.substringAfter('/')
-            val handle = LibC.dlopen(path, 1) ?: return null
+            // create a mapped byte buffer
+            val file = RandomAccessFile(path, "r")
+            val channel = file.channel
+            val buffer = channel.map(FileChannel.MapMode.READ_ONLY, 0, file.length())
+
+            val handle = ElfFile.from(buffer)
 
             val base = it.substringBefore("-").toLong(16)
 

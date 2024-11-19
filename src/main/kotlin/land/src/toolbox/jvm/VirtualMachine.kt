@@ -8,16 +8,17 @@ import land.src.toolbox.jvm.cache.Structs
 import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Field
 import land.src.toolbox.jvm.primitive.Type
+import land.src.toolbox.jvm.util.DynamicTypeResolver
 import land.src.toolbox.process.ProcessHandle
 import java.io.File
 import java.util.*
 
 class VirtualMachine(private val process: ProcessHandle, private val structsFile: File? = null) : Scope {
-    private val symbols = Symbols(process)
+    override val symbols = Symbols(process)
     private val constants = LinkedHashMap<String, Number>()
 
     val isLocal = process.local
-    private var vmTypes: VMStructs
+    var vmTypes: VMStructs
 
     override val vm = this
     override val version: VMVersion
@@ -30,6 +31,7 @@ class VirtualMachine(private val process: ProcessHandle, private val structsFile
     override val universe = Universe(this)
     override val vmClasses = VMClasses(this)
     override val objects = Objects(this)
+    override val dynamicTypeResolver: DynamicTypeResolver = DynamicTypeResolver(this)
 
     init {
         // either read the structs from the file or from the process

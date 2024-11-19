@@ -1,9 +1,21 @@
 package land.src.toolbox.jvm
 
 import land.src.toolbox.jvm.oop.*
+import land.src.toolbox.jvm.oop.gc.epsilon.EpsilonHeap
+import land.src.toolbox.jvm.oop.gc.g1.G1CollectedHeap
+import land.src.toolbox.jvm.oop.gc.shared.CollectedHeap
+import land.src.toolbox.jvm.primitive.Address
 import java.util.LinkedList
 
 class Universe(val scope: Scope) {
+
+    val collectedHeap: CollectedHeap? by lazy {
+        val universeType = scope.vm.type("Universe")
+        val heapField = universeType.field("_collectedHeap")!!
+        val heapAddress = Address(scope, scope.unsafe.getAddress(heapField.offsetOrAddress))
+        scope.dynamicTypeResolver.constructPolymorphic<CollectedHeap>(
+            heapAddress, G1CollectedHeap::class, EpsilonHeap::class)
+    }
 
     @OptIn(ExperimentalStdlibApi::class)
     val loadedKlasses: Map<String, Klass> by lazy {
