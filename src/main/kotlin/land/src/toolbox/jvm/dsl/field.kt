@@ -5,6 +5,7 @@ import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Addressable
 import land.src.toolbox.jvm.primitive.Oop
 import land.src.toolbox.jvm.primitive.Struct
+import land.src.toolbox.jvm.util.ptr
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty0
@@ -37,7 +38,7 @@ class NamedFieldAddressProvider<V : Any>(
         val base = struct.address.base
         val address = if (field.isStatic) field.offsetOrAddress else base + field.offsetOrAddress
 
-        return if (usePointer && (location.isPointer || structs.isStruct(type)))
+        return if (usePointer && location.isPointer)
             unsafe.getAddress(address)
         else address
     }
@@ -52,7 +53,7 @@ class OffsetFieldAddressProvider<V : Any>(
         val base = struct.address.base
         val address = base + location.value
 
-        return if (usePointer && (location.isPointer || structs.isStruct(type)))
+        return if (usePointer && location.isPointer)
             unsafe.getAddress(address)
         else address
     }
@@ -65,7 +66,7 @@ class AddressFieldAddressProvider<V : Any>(
 ) : AddressProvider, Scope by struct {
     override fun invoke(usePointer: Boolean): Long {
         val address = location.value
-        return if (usePointer && (location.isPointer || structs.isStruct(type)))
+        return if (usePointer && location.isPointer)
             unsafe.getAddress(address)
         else address
     }
@@ -229,7 +230,10 @@ inline fun <reified V : Any> Struct.constantOffsetValue(constant: String, isInde
  * @param fieldName the name of the field
  * @param isPointer if the field type is a pointer
  */
-inline fun <reified V : Any> Struct.maybeNull(fieldName: String, isPointer: Boolean = false) = NullableFieldDelegate(
+inline fun <reified V : Any> Struct.maybeNull(
+    fieldName: String,
+    isPointer: Boolean = structs.isStruct(V::class)
+) = NullableFieldDelegate(
     type = V::class,
     struct = this,
     location = FieldLocation.Name(fieldName, isPointer)
@@ -262,7 +266,7 @@ inline fun <reified V : Any> Struct.maybeNull(
  */
 inline fun <reified V : Any> Struct.maybeNullFromConstantIndex(
     constant: String,
-    isPointer: Boolean = false
+    isPointer: Boolean = structs.isStruct(V::class)
 ) = NullableFieldDelegate(
     type = V::class,
     struct = this,
@@ -280,7 +284,7 @@ inline fun <reified V : Any> Struct.maybeNullFromConstantIndex(
  */
 inline fun <reified V : Any> Struct.maybeNullFromConstantOffset(
     constant: String,
-    isPointer: Boolean = false
+    isPointer: Boolean = structs.isStruct(V::class)
 ) = NullableFieldDelegate(
     type = V::class,
     struct = this,
@@ -295,7 +299,10 @@ inline fun <reified V : Any> Struct.maybeNullFromConstantOffset(
  * @param fieldName the name of the field
  * @param isPointer if the field type is a pointer
  */
-inline fun <reified V : Any> Struct.nonNull(fieldName: String, isPointer: Boolean = false) = FieldDelegate(
+inline fun <reified V : Any> Struct.nonNull(
+    fieldName: String,
+    isPointer: Boolean = structs.isStruct(V::class)
+) = FieldDelegate(
     type = V::class,
     struct = this,
     location = FieldLocation.Name(fieldName, isPointer)
@@ -328,7 +335,7 @@ inline fun <reified V : Any> Struct.nonNull(
  */
 inline fun <reified V : Any> Struct.nonNullFromConstantIndex(
     constant: String,
-    isPointer: Boolean = false
+    isPointer: Boolean = structs.isStruct(V::class)
 ) = FieldDelegate(
     type = V::class,
     struct = this,
@@ -346,7 +353,7 @@ inline fun <reified V : Any> Struct.nonNullFromConstantIndex(
  */
 inline fun <reified V : Any> Struct.nonNullFromConstantOffset(
     constant: String,
-    isPointer: Boolean = false
+    isPointer: Boolean = structs.isStruct(V::class)
 ) = FieldDelegate(
     type = V::class,
     struct = this,

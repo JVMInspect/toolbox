@@ -107,10 +107,7 @@ class CodeRewriter(val method: ConstMethod) {
         val code = method.code.bytes
         val rewritten = code.copyOf(code.size)
         val pool = method.constants
-
-        if (pool.cache == null) {
-            return@rewrittenCode rewritten
-        }
+        val cache = pool.cache ?: return@rewrittenCode rewritten
 
         while (bci < code.size) {
             val jvm = code[bci].toInt() and 0xff
@@ -155,7 +152,9 @@ class CodeRewriter(val method: ConstMethod) {
                 }
                 isMemberAccess(java) -> {
                     val index = readShort(code, bci + 1, false)
-                    val refIndex = pool.getRefIndex(index)
+                    val refIndex = runCatching {
+                        pool.getRefIndex(index)
+                    }.getOrElse { cache[index.toInt()].cpIndex.toShort() }
                     writeShort(rewritten, bci + 1, refIndex, true)
                 }
                 java == LOOKUPSWITCH -> {

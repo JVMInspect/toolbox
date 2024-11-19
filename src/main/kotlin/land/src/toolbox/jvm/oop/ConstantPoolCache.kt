@@ -58,7 +58,7 @@ class ConstantPoolCache(address: Address) : Struct(address), Oop {
         // we also need to expand the _reference_map array wit the new references
         val oldReferenceSize = referenceMap?.length ?: 0
         val newReferenceMap: Array<Short> = if (referenceMap == null) {
-            arrays.allocate(references.size)
+            arrays.allocate0(references.size)
         } else {
             referenceMap!!.expand(references.size)
         }

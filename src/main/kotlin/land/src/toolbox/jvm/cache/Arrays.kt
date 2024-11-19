@@ -67,6 +67,28 @@ class Arrays(scope: Scope) : Scope by scope {
         isPointer = isPointer
     )
 
+    fun allocate(
+        length: Int,
+        arrayType: KClass<*>,
+        elementType: KClass<*>,
+        isElementPointer: Boolean
+    ): Array<*> {
+        val info = ElementInfo(elementType, isElementPointer)
+
+        val sizeOfHeader = info.offset + info.size
+        val sizeOfContent = length * info.size
+        val address = unsafe.allocateMemory((sizeOfHeader + sizeOfContent).toLong())
+
+        val factory = factories.computeIfAbsent(arrayType to info) {
+            Factory<Array<*>>(arrayType, info)
+        }
+
+        return factory(Address(this, address))
+    }
+
+    inline fun <reified E : Any, reified A : Array<E>>  allocate(length: Int, isElementPointer: Boolean) =
+        allocate(length, E::class, A::class, isElementPointer)
+
     operator fun invoke(
         address: Long,
         arrayType: KClass<*>,
@@ -115,6 +137,6 @@ class Arrays(scope: Scope) : Scope by scope {
         return factory(Address(this, address))
     }
 
-    inline fun <reified E : Any, reified A : Array<E>> allocate(length: Int, isElementPointer: Boolean = false): Array<E> =
+    inline fun <reified E : Any, reified A : Array<E>> allocate0(length: Int, isElementPointer: Boolean = false): Array<E> =
         allocate0(length, E::class, A::class, isElementPointer) as A
 }
