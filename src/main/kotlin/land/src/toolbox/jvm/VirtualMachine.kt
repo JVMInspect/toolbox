@@ -163,7 +163,7 @@ class VirtualMachine(private val process: ProcessHandle, private val structsFile
         unsafe.getLong(Pointer.nativeValue(symbols.lookup(name)))
 
     fun type(name: String) = vmTypes[name]
-        ?: throw NoSuchElementException("No such type: $name")
+        ?: Type.Undefined//throw NoSuchElementException("No such type: $name")
 
     fun constant(name: String) = constants[name]
         ?: throw NoSuchElementException("No such constant: $name")

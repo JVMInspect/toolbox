@@ -1,6 +1,6 @@
 package land.src.toolbox.jvm.primitive
 
-class Type(
+open class Type(
     val name: String,
     val superName: String,
     val size: Int,
@@ -9,6 +9,8 @@ class Type(
     val isUnsigned: Boolean,
     val fields: Set<Field>
 ) {
+    object Undefined : Type("Undefined", "Undefined", -1, false, false, false, emptySet())
+
     fun field(name: String): Field? =
         fields.firstOrNull { it.name == name }
 
