@@ -23,5 +23,15 @@ class VMFlags(address: Address) : Struct(address) {
         value
     }
 
+    val flagMap by lazy {
+        val value = mutableMapOf<String, Int>()
+        flags.forEach { value[it.name] = it.value }
+        value
+    }
+
+    fun lookupFlag(name: String): Flag? = flags.find { it.name == name }
+
+    fun lookupFlagValue(name: String): Int? = flagMap[name]
+
     override val typeName: String = "JVMFlag"
 }

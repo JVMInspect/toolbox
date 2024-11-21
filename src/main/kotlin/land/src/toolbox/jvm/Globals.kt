@@ -10,4 +10,5 @@ class Globals(val scope: Scope) {
     val compressedOops = CompressedOops(scope.placeholder)
     val compressedKlassPointers = CompressedKlassPointers(scope.placeholder)
     val vmSymbols = VMSymbols(scope.placeholder)
+    val vmFlags = VMFlags(scope.placeholder)
 }

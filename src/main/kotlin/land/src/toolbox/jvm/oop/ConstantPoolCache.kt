@@ -31,7 +31,7 @@ class ConstantPoolCache(address: Address) : Struct(address), Oop {
     //val constantPool: ConstantPool by nonNull("_constant_pool")
     var referenceMap: Array<Short>? by maybeNullArray("_reference_map")
     private val _resolvedReferences: OopHandle? by maybeNull {
-        offset(type.field("_constant_pool")!!.offsetOrAddress + pointerSize)
+        offset(type.field("_constant_pool")!!.offsetOrAddress + pointerSize, isPointer = true)
     }
     val resolvedReferences: ArrayOopDesc? by lazy {
         if (_resolvedReferences == null) null else ArrayOopDesc(_resolvedReferences!!.obj.address)
@@ -84,7 +84,7 @@ class ConstantPoolCache(address: Address) : Struct(address), Oop {
         val newCache = ConstantPoolCache(Address(this, newCacheAddress))
         newCache.length = length + entries.size
         newCache.referenceMap = newReferenceMap
-        newCache._resolvedReferences!!.obj = newResolvedReferences
+        _resolvedReferences!!.obj = newResolvedReferences
 
         return newCache
     }

@@ -2,6 +2,7 @@
 import land.src.toolbox.jvm.VMFlags
 import land.src.toolbox.jvm.VirtualMachine
 import land.src.toolbox.jvm.util.CodeReplacer
+import land.src.toolbox.jvm.util.DynamicTypeResolver
 import land.src.toolbox.jvm.util.JVM_CONSTANT_Utf8
 import land.src.toolbox.jvm.util.KlassDumper
 import land.src.toolbox.process.impl.LinuxProcessHandle
@@ -38,9 +39,6 @@ fun main() {
     val codeReplacer = CodeReplacer(vm, testClass123Klass.methods.find { it.name == "test" }!!)
 
     println(testClass123Klass.constantPool.address.base)
-
-    testString.test()
-
     codeReplacer.replace(newClassFile)
 
     testString.test()

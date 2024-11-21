@@ -4,6 +4,8 @@ import land.src.toolbox.jvm.cache.Arrays
 import land.src.toolbox.jvm.cache.Fields
 import land.src.toolbox.jvm.cache.Oops
 import land.src.toolbox.jvm.cache.Structs
+import land.src.toolbox.jvm.oop.JavaThread
+import land.src.toolbox.jvm.oop.Thread
 import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.util.DynamicTypeResolver
 import land.src.toolbox.process.ProcessUnsafe
@@ -77,6 +79,8 @@ interface Scope {
      * Dynamic type resolution
      */
     val dynamicTypeResolver: DynamicTypeResolver
+
+    val thread: JavaThread get() = Thread.current(this)
 
     val pointerSize: Long get() = if (vm.is64Bit) 8 else 4
 }

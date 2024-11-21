@@ -15,6 +15,8 @@ open class OopDesc(address: Address) : Struct(address) {
     val useCompressedKlassPointers = globals.compressedKlassPointers.isCompressedKlassPointers()
     val useCompressedOops = globals.compressedOops.isCompressedOops()
 
+    val klassGap: Long get() = _klassOffset + 4
+
     var klass: Klass get() {
         if (!useCompressedKlassPointers)
             return _klass

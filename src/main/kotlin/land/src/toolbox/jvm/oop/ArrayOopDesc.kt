@@ -28,7 +28,7 @@ class ArrayOopDesc(address: Address) : OopDesc(address) {
     var length: Int get() {
         // when compressed class pointers is used the length is stored in the top half of the _metadata._narrow_klass field
         return if (useCompressedKlassPointers) {
-            _klass.base.ushr(32).toInt()
+            unsafe.getInt(address.base + klassGap)
         } else {
             // otherwise the length is stored right after the header
             getField<Int>(structs.sizeof(ArrayOopDesc::class))
@@ -36,7 +36,7 @@ class ArrayOopDesc(address: Address) : OopDesc(address) {
     }
     set(value) {
         if (useCompressedKlassPointers) {
-            unsafe.putAddress(address.base + _klassOffset, (value.toLong() shl 32) or (_klass.base and 0xFFFFFFFF))
+            unsafe.putInt(address.base + klassGap, value)
         } else {
             setField(type.size, value)
         }
@@ -77,14 +77,20 @@ class ArrayOopDesc(address: Address) : OopDesc(address) {
         return length * elemBytes(type) + headerSize(type)
     }
 
+    @OptIn(ExperimentalStdlibApi::class)
     fun expand(type: Int, by: Int): ArrayOopDesc {
         val oldSize = arraySize(type)
         val newSize = oldSize + by * elemBytes(type)
+        // allocating new memory will cause this array to no longer be valid, this will cause a memory zap
+        // filling this arrays memory with BAADBABE, therefore we need to save the memory here
+        val savedMemory = unsafe.getMemory(address.base, oldSize)
+        val oldLength = length
         val newAddress = objects.allocateMemory(newSize)
-        unsafe.copyMemory(address.base, newAddress, oldSize)
+        println("New array address: ${newAddress.toHexString()}")
 
         val newArray = ArrayOopDesc(Address(this, newAddress))
-        newArray.length = length + by
+        unsafe.putMemory(newAddress, savedMemory)
+        newArray.length = oldLength + by
 
         return newArray
     }

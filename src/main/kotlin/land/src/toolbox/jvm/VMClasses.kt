@@ -5,7 +5,6 @@ import land.src.toolbox.jvm.oop.Klass
 
 class VMClasses(val scope: Scope) {
 
-
     val java_lang_Object: InstanceKlass by lazy { scope.universe.instanceKlass("java/lang/Object")!! }
     val java_lang_Class: InstanceKlass by lazy { scope.universe.instanceKlass("java/lang/Class")!! }
     val java_lang_String: InstanceKlass by lazy { scope.universe.instanceKlass("java/lang/String")!! }

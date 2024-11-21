@@ -141,7 +141,7 @@ class CodeReplacer(val vm: VirtualMachine, val target: Method) {
         constMethod.setCode(bytecode)
 
         target.constMethod.constants = expandInformation.pool
-        //target.constMethod.constants.poolHolder.constantPool = expandInformation.pool
+        target.constMethod.constants.poolHolder.constantPool = expandInformation.pool
     }
 
 }

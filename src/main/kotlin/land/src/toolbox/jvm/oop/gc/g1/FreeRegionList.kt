@@ -13,6 +13,8 @@ class FreeRegionList(address: Address) : HeapRegionSetBase(address) {
     fun removeFromHead(): HeapRegion {
         val result = head
 
+        length--
+
         head = result!!.next
         if (head == null) {
             tail = null
@@ -21,8 +23,6 @@ class FreeRegionList(address: Address) : HeapRegionSetBase(address) {
         }
 
         result.next = null
-
-        length--
 
         return result
     }

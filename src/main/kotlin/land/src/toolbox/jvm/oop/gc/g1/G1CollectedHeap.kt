@@ -12,25 +12,37 @@ class G1CollectedHeap(address: Address) : CollectedHeap(address) {
 
     var currentNode: HeapRegion? = null
 
+    val badHeapWord = 0xBAADBABE
+    val badOopHeapWord = 0x2BAD4B0BBAADBABE
+
     override fun allocate(size: Long): Long {
         // grab a block from the free list and make it available for allocation
         if (currentNode == null || !currentNode!!.fits(size)) {
-            currentNode = heapRegionManager.freeList.removeFromHead()
+            val node = heapRegionManager.freeList.removeFromHead()
 
             // we set the thing to be a closed archive region
             val closedArchiveType: Int = 32 or 8 + 1
-            currentNode!!.regionType = closedArchiveType
+            node.regionType = closedArchiveType
 
             // increase the archive set length
             archiveSet.length++
 
             // TODO: this will only work on ASSERT builds?
-            currentNode!!.containingSet = archiveSet
+            node.containingSet = archiveSet
+
+            currentNode = node
         }
 
         val node = currentNode!!
         val result = node.top
         node.top += size
+
+        // write the bad heap word to the allocated memory
+        // align size to 4 bytes
+        val alignedSize = (size + 3) and 0xFFFFFFFC
+        for (i in 0 .. alignedSize) {
+            unsafe.putInt(result + i, badHeapWord.toInt())
+        }
 
         summaryBytesUsed += size
 
