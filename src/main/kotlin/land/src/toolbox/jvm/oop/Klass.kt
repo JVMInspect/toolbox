@@ -32,8 +32,8 @@ open class Klass(address: Address) : Struct(address) {
 
     val klassType: Type
         get() = when {
-        layoutHelper < _lh_neutral_value -> Type.InstanceKlass
-        layoutHelper > _lh_neutral_value -> Type.ArrayKlass
+        layoutHelper > _lh_neutral_value -> Type.InstanceKlass
+        layoutHelper < _lh_neutral_value -> Type.ArrayKlass
         else -> Type.Klass
     }
 
