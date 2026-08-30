@@ -16,8 +16,16 @@ class Symbol(address: Address) : Struct(address), Oop {
     private var _length: Short by nonNull("_length")
 
     val length = _length.toInt() and 0xffff
-    val bytes = unsafe.getMemory(address.base + _body, length)
+    var bytes get() = unsafe.getMemory(address.base + _body, length)
+        set(value) {
+            unsafe.putMemory(address.base + _body, value)
+            _length = value.size.toShort()
+        }
     val string = readModifiedUTF8(bytes)
+
+    fun increaseRefCount() {
+        _hash_and_refcount += 1 shl 16
+    }
 
     private fun readModifiedUTF8(buf: ByteArray): String {
         val len = buf.size

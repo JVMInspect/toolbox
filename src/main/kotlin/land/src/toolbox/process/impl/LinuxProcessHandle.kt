@@ -46,6 +46,13 @@ class LinuxProcessHandle(override val pid: Int, override val local: Boolean) : P
     @Volatile private var remoteArray: Array<iovec> = arrayOf(remoteVec)
 
     override fun read(src: Pointer, dst: Pointer, size: Int): Int {
+        if (local) {
+            // we can just copy the memory
+            dst.write(0, src.getByteArray(0, size), 0, size)
+            return size
+        }
+
+
         localVec.iov_base = dst
         localVec.iov_len = size.toLong()
 
@@ -61,6 +68,12 @@ class LinuxProcessHandle(override val pid: Int, override val local: Boolean) : P
     }
 
     override fun write(dst: Pointer, src: Pointer, size: Int): Int {
+        if (local) {
+            // we can just copy the memory
+            dst.write(0, src.getByteArray(0, size), 0, size)
+            return size
+        }
+
         val local = iovec(src, size.toLong())
         val remote = iovec(dst, size.toLong())
 

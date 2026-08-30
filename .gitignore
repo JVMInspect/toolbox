@@ -20,3 +20,30 @@ gradle-app.setting
 # JDT-specific (Eclipse Java Development Tools)
 .classpath
 .idea/
+
+# IntelliJ output
+out/
+
+# Local scratch sources: manual class loading experiments and one-off dumps.
+# Kept on disk, out of the repo.
+src/main/kotlin/land/src/toolbox/jvm/util/ManualClassLoader.kt
+src/test/kotlin/manualClassLoad.kt
+src/test/kotlin/TestClass123.kt
+src/test/kotlin/futureclientdump.kt
+
+# Debugging leftovers
+.gdb_history
+hs_err_pid*.log
+replay_pid*.log
+
+# Working artifacts: dumped classes, VM struct dumps, relocation tables
+/*.class
+/*.clazz
+/dump/
+/dump */
+/dump.zip
+/voil/
+/voil.zip
+/dumped-classes/
+/structs.txt
+/relocationInfo.dat

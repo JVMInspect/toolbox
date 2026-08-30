@@ -11,7 +11,7 @@ import com.sun.jna.platform.win32.WinNT.HANDLE
 import com.sun.jna.ptr.IntByReference
 import com.sun.jna.win32.W32APIOptions.ASCII_OPTIONS
 
-val Long.pointer: Pointer get() = Pointer.createConstant(this)
+val Long.pointer: Pointer get() = Pointer(this)
 val Pointer.address: Long get() = Pointer.nativeValue(this)
 
 interface Kernel32Ext : Kernel32 {

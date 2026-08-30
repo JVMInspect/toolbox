@@ -18,6 +18,7 @@ import software.coley.cafedude.classfile.constant.CpFloat
 import software.coley.cafedude.classfile.constant.CpInt
 import software.coley.cafedude.classfile.constant.CpInvokeDynamic
 import software.coley.cafedude.classfile.constant.CpLong
+import software.coley.cafedude.classfile.constant.CpMethodHandle
 import software.coley.cafedude.classfile.constant.CpMethodRef
 import software.coley.cafedude.classfile.constant.CpModule
 import software.coley.cafedude.classfile.constant.CpNameType
@@ -29,6 +30,7 @@ import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.nio.ByteBuffer
+import kotlin.math.exp
 
 class ConstantPool(address: Address) : Struct(address), Oop {
     var length: Int by nonNull("_length")
@@ -301,7 +303,8 @@ class ConstantPool(address: Address) : Struct(address), Oop {
 
                 JVM_CONSTANT_String,
                 JVM_CONSTANT_MethodType,
-                JVM_CONSTANT_MethodHandle -> {
+                JVM_CONSTANT_MethodHandle,
+                JVM_CONSTANT_Dynamic -> {
                     objectEntries += index.toShort()
                 }
 
@@ -322,6 +325,10 @@ class ConstantPool(address: Address) : Struct(address), Oop {
 
     fun getUtf8SymbolIndex(string: String): Int = utf8SymbolMap[string] ?: error("Symbol not present $string")
     fun getClassSymbolIndex(string: String): Int = classSymbolMap[string] ?: error("Class not present $string")
+
+    fun getUtf8Symbols(): List<Symbol> {
+        return utf8SymbolMap.keys.map { getSymbol(getUtf8SymbolIndex(it)) }
+    }
 
     data class ExpandInformation(val cacheMapping: Map<Int, Int>, val referenceMapping: Map<Int, Int>, val pool: ConstantPool)
 
@@ -348,9 +355,6 @@ class ConstantPool(address: Address) : Struct(address), Oop {
         // create new tags array
         val expandedTags = tags.expand(entries.size)
         newPool.tags = expandedTags
-        for (tag in newPool.tags) {
-            println("tag: $tag")
-        }
 
         newPool.length = length + entries.size
 
@@ -362,7 +366,7 @@ class ConstantPool(address: Address) : Struct(address), Oop {
         val referenceMap = mutableListOf<Short>()
 
         var cacheSize = cache!!.length
-        var refsSize = cache!!.referenceMap!!.length
+        var refsSize = cache!!.referenceMap?.length ?: 0
 
         fun allocateEntry(tag: Int, index: Int): Int {
             val entryAddress = unsafe.allocateMemory(structs.sizeof(ConstantPoolCacheEntry::class).toLong())
@@ -398,18 +402,38 @@ class ConstantPool(address: Address) : Struct(address), Oop {
         // update internal references
         expanded.forEachIndexed { index, entry -> entry.index = length + index }
 
+        val utf8SymbolMap = mutableMapOf<String, Int>()
         val symbolMap = mutableMapOf<Int, Symbol>()
+        // go over all strings first
+        expanded.forEachIndexed { index, entry ->
+            if (entry !is CpUtf8) return@forEachIndexed
+            val newIndex = length + index
+            println("new index: $newIndex")
+            utf8SymbolMap[entry.text] = newIndex
+        }
+
+        // allocate symbol instances for all utf8 entries
+        if (vm.isLocal) {
+            // we can use tricks to allocate real hashed strings
+            loadLocalSymbols(this, utf8SymbolMap.keys).forEach {
+                val index = utf8SymbolMap[it.string]!!
+                symbolMap[index] = it
+            }
+        } else {
+            utf8SymbolMap.forEach { (string, index) ->
+                val symbol = Symbol.create(string, this)
+                symbolMap[index] = symbol
+            }
+        }
 
         expanded.forEachIndexed { index, entry ->
             val newIndex = length + index
             expandedTags[newIndex] = entry.tag.toByte()
             when (entry) {
                 is CpUtf8 -> {
-                    val symbol = Symbol.create(entry.text, this)
-                    symbolMap[newIndex] = symbol
+                    val symbol = symbolMap[newIndex] ?: error("Symbol not found at index $newIndex")
                     newPool[newIndex] = symbol.address
                 }
-
                 is CpClass -> {
                     expandedTags[newIndex] = JVM_CONSTANT_UnresolvedClass.toByte()
                     // high part is the name index, low part is the resolved klass index
@@ -455,6 +479,14 @@ class ConstantPool(address: Address) : Struct(address), Oop {
                     cacheMapping[newIndex] = cacheIndex
                 }
 
+                is CpMethodHandle -> {
+                    newPool[newIndex] = (entry.reference.index shl 16) or entry.kind.toInt()
+
+                    val cacheIndex = allocateEntry(entry.tag, newIndex)
+
+                    cacheMapping[newIndex] = cacheIndex
+                }
+
                 is CpInvokeDynamic, is CpDynamic -> {
                     TODO("fill in operands also do some other stuff, havent researched, look at cpCache indy objects")
                 }
@@ -473,6 +505,18 @@ class ConstantPool(address: Address) : Struct(address), Oop {
         newPool.cache = newCache
 
         return ExpandInformation(cacheMapping, referenceMapping, newPool)
+    }
+
+    fun replace(entries: MutableSet<CpEntry>): ExpandInformation {
+        length = 1
+        tags.length = 1
+        cache!!.length = 0
+        refEntries.clear()
+        objectEntries.clear()
+        utf8SymbolMap.clear()
+        classSymbolMap.clear()
+
+        return expand(entries.toMutableList())
     }
 
     private inline operator fun <reified T> set(index: Int, value: T) {

@@ -85,7 +85,7 @@ class ArrayOopDesc(address: Address) : OopDesc(address) {
         // filling this arrays memory with BAADBABE, therefore we need to save the memory here
         val savedMemory = unsafe.getMemory(address.base, oldSize)
         val oldLength = length
-        val newAddress = objects.allocateMemory(newSize)
+        val newAddress = objects.allocateObjectMemory(newSize)
         println("New array address: ${newAddress.toHexString()}")
 
         val newArray = ArrayOopDesc(Address(this, newAddress))

@@ -9,13 +9,15 @@ import land.src.toolbox.jvm.primitive.Struct
 import java.util.concurrent.locks.LockSupport
 
 class Method(address: Address) : Struct(address), Oop {
+
     val maxStack: Short get() = constMethod.maxStack
     val maxLocals: Short get() = constMethod.maxLocals
-    val accessFlags: Short by nonNull("_access_flags")
-    val constMethod: ConstMethod by nonNull("_constMethod")
+    var accessFlags: Short by nonNull("_access_flags")
+    var constMethod: ConstMethod by nonNull("_constMethod")
     var fromInterpretedEntry: Long by nonNull("_from_interpreted_entry")
     var fromCompiledEntry: Long by nonNull("_from_compiled_entry")
-    val i2iEntry: Long by nonNull("_i2i_entry")
+    var i2iEntry: Long by nonNull("_i2i_entry")
+    var vtableIndex: Int by nonNull("_vtable_index")
 
     val adapter: AdapterHandlerEntry? by maybeNull {
         val adapterOffset = type.field("_method_counters")!!.offsetOrAddress + pointerSize
@@ -46,4 +48,5 @@ class Method(address: Address) : Struct(address), Oop {
         fromInterpretedEntry = i2iEntry
         compiledMethod = null
     }
+
 }

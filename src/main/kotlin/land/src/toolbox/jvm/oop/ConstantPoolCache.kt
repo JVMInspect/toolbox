@@ -30,14 +30,20 @@ class ConstantPoolCache(address: Address) : Struct(address), Oop {
 
     //val constantPool: ConstantPool by nonNull("_constant_pool")
     var referenceMap: Array<Short>? by maybeNullArray("_reference_map")
-    private val _resolvedReferences: OopHandle? by maybeNull {
+    private var _resolvedReferences: OopHandle? by maybeNull {
         offset(type.field("_constant_pool")!!.offsetOrAddress + pointerSize, isPointer = true)
     }
     val resolvedReferences: ArrayOopDesc? by lazy {
         if (_resolvedReferences == null) null else ArrayOopDesc(_resolvedReferences!!.obj.address)
     }
     //val resolvedFieldEntries: Array<ResolvedFieldEntry> by nonNull("_resolved_field_entries")
-    //val resolvedIndyEntries: Array<ResolvedIndyEntry> by nonNull("_resolved_indy_entries")
+
+    /**
+     * Absent before JDK 21, where invokedynamic still went through the cache entries. The entries
+     * are stored inline rather than as pointers, unlike most struct arrays here.
+     */
+    val resolvedIndyEntries: Array<ResolvedIndyEntry>? by
+        maybeNullArray("_resolved_indy_entries", isElementPointer = false)
     //val resolvedMethodEntries: Array<ResolvedMethodEntry> by nonNull("_resolved_method_entries")
     //val resolvedReferences: OopHandle by struct("_resolved_references")
 
@@ -84,7 +90,11 @@ class ConstantPoolCache(address: Address) : Struct(address), Oop {
         val newCache = ConstantPoolCache(Address(this, newCacheAddress))
         newCache.length = length + entries.size
         newCache.referenceMap = newReferenceMap
-        _resolvedReferences!!.obj = newResolvedReferences
+        if (newCache._resolvedReferences != null)
+            newCache._resolvedReferences!!.obj = newResolvedReferences
+        else {
+            newCache._resolvedReferences = OopHandle.allocate(this, newResolvedReferences)
+        }
 
         return newCache
     }

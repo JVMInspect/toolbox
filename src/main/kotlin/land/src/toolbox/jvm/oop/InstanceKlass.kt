@@ -9,8 +9,9 @@ class InstanceKlass(address: Address) : Klass(address) {
     val majorVersion: Short get() = constantPool.majorVersion
     val minorVersion: Short get() = constantPool.minorVersion
     var constantPool: ConstantPool by nonNull("_constants")
+    var initState: Byte by nonNull("_init_state")
 
-    val superClass: Klass? by maybeNull("_super")
+    var superClass: Klass? by maybeNull("_super")
 
     val nestHostIndex: Short by lazy {
         val staticOopFieldCountAddress = address.base + type.field("_static_oop_field_count")!!.offsetOrAddress
@@ -63,8 +64,8 @@ class InstanceKlass(address: Address) : Klass(address) {
     val localInterfaces: Array<InstanceKlass>? by maybeNullArray("_local_interfaces")
 
     val methods: Array<Method> by nonNullArray("_methods")
-    val fieldData: Array<Short> by nonNullArray("_fields")
-    val methodOrdering: Array<Int>? by maybeNullArray("_method_ordering")
+    val fieldData: Array<Byte> by nonNullArray("_fieldinfo_stream")
+    var methodOrdering: Array<Int>? by maybeNullArray("_method_ordering")
 
     val accessFlagsOffset: Int by constant("FieldInfo::access_flags_offset")
     val nameIndexOffset: Int by constant("FieldInfo::name_index_offset")
@@ -74,6 +75,7 @@ class InstanceKlass(address: Address) : Klass(address) {
     val highPackedOffset: Int by constant("FieldInfo::high_packed_offset")
     val miscFlags: Short by nonNull("_misc_flags")
 
+    var methodsJMethodsIds: Long by nonNull("_methods_jmethod_ids")
     var osrNMethodsHead: NMethod? by maybeNull("_osr_nmethods_head")
 
     fun isFlagSet(flag: InstanceKlassFlag): Boolean {
@@ -108,41 +110,141 @@ class InstanceKlass(address: Address) : Klass(address) {
         return fieldInfos.first { getFieldName(it) == name }
     }
 
-    val fieldInfos: List<FieldInfo> by lazy {
-        val info = mutableListOf<FieldInfo>()
-        var fieldCount = fieldData.length
-
-        var index = 0
-        while (index < fieldData.length) {
-            val accessFlags: Short = fieldData[index]!!
-
-            if ((accessFlags.toInt() and JVM_ACC_FIELD_HAS_GENERIC_SIGNATURE) != 0) {
-                fieldCount--
+    class Unsigned5Stream(val bytes: ByteArray) {
+        /*
+            const OFF pos = offset_rw;
+            STATIC_ASSERT(sizeof(get(array, pos)) == 1);  // must be a byte-getter
+            const uint32_t b_0 = (uint8_t) get(array, pos);  //b_0 = a[0]
+            assert(b_0 >= X, "avoid excluded bytes");
+            uint32_t sum = b_0 - X;
+            if (sum < L) {  // common case
+              offset_rw = pos + 1;
+              return sum;
             }
-            index += 6
+            // must collect more bytes:  b[1]...b[4]
+            int lg_H_i = lg_H;  // lg(H)*i == lg(H^^i)
+            for (int i = 1; ; i++) {  // for i in [1..4]
+              assert(limit == 0 || pos + i < limit, "oob");
+              const uint32_t b_i = (uint8_t) get(array, pos + i);  //b_i = a[i]
+              assert(b_i >= X, "avoid excluded bytes");
+              sum += (b_i - X) << lg_H_i;  // sum += (b[i]-X)*(64^^i)
+              if (b_i < X+L || i == MAX_LENGTH-1) {
+                offset_rw = pos + i + 1;
+                return sum;
+              }
+              lg_H_i += lg_H;
+            }
+         */
+        var position: Int = 0
+        fun read(): Int {
+            val b0 = bytes[position++].toInt() and 0xFF
+            var sum = b0 - 1
+            if (sum < 191) {
+                return sum
+            }
+            var lg_H_i = 6
+            for (i in 1..4) {
+                val bi = bytes[position++].toInt() and 0xFF
+                sum += (bi - 1) shl lg_H_i
+                if (bi < 192 || i == 4) {
+                    return sum
+                }
+                lg_H_i += 6
+            }
+            return sum
         }
 
-        fieldCount /= 6
+        fun hasNext(): Boolean {
+            /*
+  template<typename ARR, typename OFF, typename GET = ArrayGetSet<ARR,OFF>>
+  static int check_length(ARR array, OFF offset, OFF limit = 0,
+                          GET get = GET()) {
+    const OFF pos = offset;
+    STATIC_ASSERT(sizeof(get(array, pos)) == 1);  // must be a byte-getter
+    const uint32_t b_0 = (uint8_t) get(array, pos);  //b_0 = a[0]
+    if (b_0 < X+L) {
+      return (b_0 < X) ? 0 : 1;
+    }
+    // parse more bytes:  b[1]...b[4]
+    for (int i = 1; ; i++) {  // for i in [1..4]
+      if (limit != 0 && pos + i >= limit)  return 0;  // limit failure
+      const uint32_t b_i = (uint8_t) get(array, pos + i);  //b_i = a[i]
+      if (b_i < X)  return 0;  // excluded byte found
+      if (b_i < X+L || i == MAX_LENGTH-1) {
+        return i + 1;
+      }
+    }
+  }
 
-        for (i in 0 until fieldCount) {
-            val accessFlags = fieldData[i * 6 + accessFlagsOffset]!!
-            val nameIndex = fieldData[i * 6 + nameIndexOffset]!!
-            val signatureIndex = fieldData[i * 6 + signatureIndexOffset]!!
-            val initialValIndex = fieldData[i * 6 + initialValueIndexOffset]!!
-            val lowOffset = fieldData[i * 6 + lowPackedOffset]!!
-            val highOffset = fieldData[i * 6 + highPackedOffset]!!
+      int next_length() {
+      return UNSIGNED5::check_length(_array, _position, _limit, GET());
+    }
+
+        bool has_next() {
+      return next_length() != 0;
+    }
+
+             */
+            val b0 = bytes[position].toInt() and 0xFF
+            if (b0 < 192) {
+                return b0 > 1
+            }
+            for (i in 1..4) {
+                val bi = bytes[position + i].toInt() and 0xFF
+                if (bi < 128) return false
+                if (bi < 192 || i == 4) {
+                    return true
+                }
+            }
+            return false
+        }
+    }
+
+    val fieldInfos: List<FieldInfo> get() {
+        val info = mutableListOf<FieldInfo>()
+
+        val stream = Unsigned5Stream(fieldData.bytes)
+        val total = stream.read() + stream.read()
+
+        for (i in 0 until total) {
+            val nameIndex = stream.read().toShort()
+            val signatureIndex = stream.read().toShort()
+            val offset = stream.read()
+            val accessFlags = stream.read().toShort()
+            val flags = stream.read()
+            var initialValueIndex: Short = 0
+            // flags is 5 bits representing the following:
+            /*
+              _ff_initialized,  // has ConstantValue initializer attribute
+              _ff_injected,     // internal field injected by the JVM
+              _ff_generic,      // has a generic signature
+              _ff_stable,       // trust as stable b/c declared as @Stable
+              _ff_contended,    // is contended, may have contention-group
+            */
+            if (flags and 0x1 != 0) {
+                initialValueIndex = stream.read().toShort()
+            }
+            if (flags and 0x2 != 0) {
+                stream.read()
+            }
+            if (flags and 0x8 != 0) {
+                stream.read()
+            }
 
             info += FieldInfo(
                 accessFlags,
                 nameIndex,
                 signatureIndex,
-                initialValIndex,
-                lowOffset,
-                highOffset
+                offset,
+                initialValueIndex
             )
         }
 
-        info
+        return info
+    }
+
+    fun updateFieldInfo(index: Int, info: FieldInfo) {
+        val offset = index * 6
     }
 
     val javaFieldInfos: List<FieldInfo> by lazy {
@@ -153,9 +255,27 @@ class InstanceKlass(address: Address) : Klass(address) {
         fieldInfos.map {
             val name = getFieldName(it)
             val descriptor = getFieldDescriptor(it)
-            val offset = it.highOffset.toInt() shl 16 or it.lowOffset.toInt()
+            val offset = it.offset
             Field(name, descriptor, it.accessFlags.toInt(), offset shr 2)
         }
+    }
+
+    fun sortMethods() {
+        val sorted = methods.sortedBy { it.constMethod.nameSymbol.base }
+
+        val methodOrdering: Array<Int> = arrays.allocate0(sorted.size)
+
+        for (i in sorted.indices) {
+            val method = sorted[i]
+            method.constMethod.idNum = i.toShort()
+
+            methodOrdering[i] = i
+            method.vtableIndex = -4
+
+            methods[i] = method
+        }
+
+        this.methodOrdering = methodOrdering
     }
 
     fun removeOsrNMethod(n: NMethod): Boolean {
@@ -184,6 +304,44 @@ class InstanceKlass(address: Address) : Klass(address) {
         n.osrLink = null
 
         return found
+    }
+
+    fun objectHeaderSize(): Int {
+        return if (globals.compressedKlassPointers.isCompressedKlassPointers()) {
+            OopDesc(placeholder).klassGap.toInt()
+        } else {
+            structs.sizeof(OopDesc::class)
+        }
+    }
+
+    fun computeSizes(): Pair<List<Int>, Int> {
+        if (layoutHelper != 0) {
+            return listOf<Int>() to ((layoutHelper shr 3) * 8)
+        }
+        var beginning = superClass?.instanceKlass?.computeSizes()?.second ?: objectHeaderSize()
+        val fieldOffsets = mutableListOf<Int>()
+        fieldInfos.forEach { field ->
+            var fieldSize = sizeForType(this, constantPool.getString(field.signatureIndex.toInt()))
+
+            val offset = beginning
+            fieldOffsets += offset
+
+            beginning += fieldSize
+        }
+
+        return fieldOffsets to beginning
+    }
+
+    /// Completely unlink InstanceKlass from the jvm internal references
+    fun unlink() {
+        // we have to remove ourselves from alot of places:
+        // - SystemDictionary
+        // - SymbolTable
+        // - ProtectionDomainCache
+        // - FinalizersCache
+        // - ClassLoaderDataGraph
+        // - ClassLoaderData
+        // - InitializationErrorTable
     }
 }
 

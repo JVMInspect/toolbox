@@ -51,6 +51,18 @@ class Universe(val scope: Scope) {
         return klass(name)?.instanceKlass
     }
 
+    fun findInstanceKlass(name: String): InstanceKlass? {
+        // go look for the classloader that contains the class
+        val classloaders = findAllClassloadersContaining(name)
+        if (classloaders.isEmpty()) {
+            return null
+        }
+
+        // find the class in the classloader
+        val cld = classloaders[0]
+        return cld.allKlasses[name]?.instanceKlass
+    }
+
     fun findAllClassloadersContaining(name: String): List<ClassLoaderData> {
         val result = LinkedList<ClassLoaderData>()
 

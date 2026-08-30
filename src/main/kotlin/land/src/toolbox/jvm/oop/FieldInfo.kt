@@ -6,12 +6,11 @@ import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Struct
 
 class FieldInfo(
-    val accessFlags: Short,
-    val nameIndex: Short,
-    val signatureIndex: Short,
-    val initialValueIndex: Short,
-    val lowOffset: Short,
-    val highOffset: Short
+    var accessFlags: Short,
+    var nameIndex: Short,
+    var signatureIndex: Short,
+    var offset: Int,
+    var initialValueIndex: Short
 )
 
 //class FieldInfo(address: Address) : Struct(address) {

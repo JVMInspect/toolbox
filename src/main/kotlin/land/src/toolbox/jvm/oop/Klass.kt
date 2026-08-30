@@ -20,10 +20,10 @@ open class Klass(address: Address) : Struct(address) {
 
     val secondarySupers: Array<Klass>? by maybeNull("_secondary_supers")
 
-    val name: Symbol by nonNull("_name")
+    var name: Symbol by nonNull("_name")
     val nextLink: Klass? by maybeNull("_next_link")
 
-    val layoutHelper: Int by nonNull("_layout_helper")
+    var layoutHelper: Int by nonNull("_layout_helper")
     val classLoaderData: ClassLoaderData by nonNull("_class_loader_data")
 
     val accessFlags: Int by nonNull("_access_flags")

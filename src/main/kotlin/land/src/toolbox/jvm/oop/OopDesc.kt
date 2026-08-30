@@ -6,6 +6,7 @@ import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Struct
 
 open class OopDesc(address: Address) : Struct(address) {
+
     override val typeName: String = "oopDesc"
 
     var markWord: Long by nonNull("_mark")
@@ -36,7 +37,7 @@ open class OopDesc(address: Address) : Struct(address) {
         val klassShift = globals.compressedKlassPointers.narrowKlassShift
         val narrowKlass = (value.address.base - klassBase) ushr klassShift
 
-        unsafe.putAddress(_klassOffset, narrowKlass)
+        unsafe.putInt(address.base + _klassOffset, narrowKlass.toInt())
     }
 
     inline fun <reified V : Any> getField(offset: Int): V {

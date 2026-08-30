@@ -5,8 +5,8 @@ import land.src.toolbox.jvm.dsl.maybeNullArray
 import land.src.toolbox.jvm.dsl.nonNull
 import land.src.toolbox.jvm.primitive.Address
 import land.src.toolbox.jvm.primitive.Array
-import land.src.toolbox.jvm.primitive.Oop
 import land.src.toolbox.jvm.primitive.Struct
+import land.src.toolbox.jvm.util.roundTo
 
 class Code(val address: Address, val size: Int) : Scope by address {
     val bytes by lazy {
@@ -31,12 +31,12 @@ class ConstMethod(address: Address) : Struct(address) {
 
     var constants: ConstantPool by nonNull("_constants")
 
-    val nameIndex: Short by nonNull("_name_index")
-    val signatureIndex: Short by nonNull("_signature_index")
-    val idNum: Short by nonNull("_method_idnum")
+    var nameIndex: Short by nonNull("_name_index")
+    var signatureIndex: Short by nonNull("_signature_index")
+    var idNum: Short by nonNull("_method_idnum")
 
     var codeSize: Short by nonNull("_code_size")
-    val constMethodSize: Int by nonNull("_constMethod_size")
+    var constMethodSize: Int by nonNull("_constMethod_size")
 
     val bytecodeOffset: Long get() = type.size.toLong()
     val codeEndOffset: Long get() = bytecodeOffset + codeSize
@@ -44,7 +44,9 @@ class ConstMethod(address: Address) : Struct(address) {
     val isNative: Boolean get() = method.isNative
 
     val name: String get() = constants.getString(nameIndex.toInt())
+    val nameSymbol: Symbol get() = constants.getSymbol(nameIndex.toInt())
     val signature: String get() = constants.getString(signatureIndex.toInt())
+
 
     val code by lazy {
         Code(Address(this, address.base + bytecodeOffset), codeSize.toInt())
@@ -59,7 +61,7 @@ class ConstMethod(address: Address) : Struct(address) {
         Address(this, address.base + bytecodeOffset)
     }
 
-    val flags: Int by nonNull("_flags")
+    val flags: Int by nonNull("_flags._flags")
 
     val hasLineNumberTable: Boolean get() = flags and (1 shl 0) != 0
     val hasCheckedExceptions: Boolean get() = flags and (1 shl 1) != 0
@@ -266,4 +268,76 @@ class ConstMethod(address: Address) : Struct(address) {
         }
         return value
     }
+
+    data class ReplaceInformation(
+        val code: ByteArray,
+        val lineNumberEntries: List<LineNumberTableElement> = listOf(),
+        val checkedExceptionEntries: List<CheckedExceptionElement> = listOf(),
+        val localVariableTableEntries: List<LocalVariableTableElement> = listOf(),
+        val exceptionTableEntries: List<ExceptionTableElement> = listOf(),
+        val genericSignatureIndex: Short = 0,
+        val methodParametersEntries: List<MethodParametersElement> = listOf(),
+        val methodAnnotations: Array<Byte>? = null,
+        val parameterAnnotations: Array<Byte>? = null,
+        val typeAnnotations: Array<Byte>? = null,
+        val defaultAnnotations: Array<Byte>? = null,
+        val stackMapData: Array<Byte>? = null
+    ) {
+        fun size(): Int {
+            var extraBytes = code.size
+            if (lineNumberEntries.isNotEmpty()) {
+                extraBytes += lineNumberEntries.size * 4
+            }
+            if (checkedExceptionEntries.isNotEmpty()) {
+                extraBytes += 4 + checkedExceptionEntries.size * 4
+            }
+            if (localVariableTableEntries.isNotEmpty()) {
+                extraBytes += 2 + localVariableTableEntries.size * (6 * 4)
+            }
+            if (exceptionTableEntries.isNotEmpty()) {
+                extraBytes += 2 + exceptionTableEntries.size * (4 * 4)
+            }
+            if (genericSignatureIndex != 0.toShort()) {
+                extraBytes += 2
+            }
+            if (methodParametersEntries.isNotEmpty()) {
+                extraBytes += 2 + methodParametersEntries.size * (2 * 4)
+            }
+            // align to 4 bytes
+            extraBytes = roundTo(extraBytes, 4)
+
+            if (methodAnnotations != null) {
+                extraBytes += 8
+            }
+            if (parameterAnnotations != null) {
+                extraBytes += 8
+            }
+            if (typeAnnotations != null) {
+                extraBytes += 8
+            }
+            if (defaultAnnotations != null) {
+                extraBytes += 8
+            }
+
+            return extraBytes
+        }
+    }
+
+    fun replace(info: ReplaceInformation): ConstMethod {
+        val fullSize = type.size + info.size()
+        val newAddress = unsafe.allocateMemory(fullSize.toLong())
+        // copy the old constMethod
+        unsafe.copyMemory(address.base, newAddress, type.size)
+        // write the new code
+        unsafe.putMemory(newAddress + bytecodeOffset, info.code)
+
+        // TODO write the rest of the information
+
+        val newConstMethod = ConstMethod(Address(this, newAddress))
+        newConstMethod.codeSize = info.code.size.toShort()
+        newConstMethod.constMethodSize = fullSize
+
+        return newConstMethod
+    }
+
 }

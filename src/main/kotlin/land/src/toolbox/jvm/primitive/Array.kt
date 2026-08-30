@@ -3,6 +3,7 @@ package land.src.toolbox.jvm.primitive
 import land.src.toolbox.jvm.Scope
 import land.src.toolbox.jvm.util.Accessible
 import kotlin.reflect.KClass
+import kotlin.reflect.full.isSubclassOf
 
 open class Array<E : Any>(address: Address, private val elementInfo: ElementInfo) : Struct(address), Iterable<E>,
     Accessible<E> {
@@ -100,12 +101,12 @@ open class Array<E : Any>(address: Address, private val elementInfo: ElementInfo
 
     override fun iterator() = ArrayIterator(this)
 
-    fun expand(size: Int): Array<E> {
+    fun expand(by: Int): Array<E> {
         // old address will remain somewhere in metaspace, can't be freed
-        val entireSize = elementInfo.offset + ((length + size) * elementSize)
+        val entireSize = elementInfo.offset + ((length + by) * elementSize)
         val newMemory = unsafe.allocateMemory(entireSize.toLong())
         unsafe.copyMemory(address.base, newMemory, elementInfo.offset + length * elementSize)
-        unsafe.putInt(newMemory, length + size)
+        unsafe.putInt(newMemory, length + by)
 
         return (arrays(newMemory, this::class, elementInfo.type, elementInfo.isPointer) as Array<E>?)!!
     }
@@ -131,7 +132,13 @@ open class Array<E : Any>(address: Address, private val elementInfo: ElementInfo
             Long::class -> unsafe.putLong(elementAddress, value as Long)
             Float::class -> unsafe.putFloat(elementAddress, value as Float)
             Double::class -> unsafe.putDouble(elementAddress, value as Double)
-            else -> error("Cannot set element ${elementInfo.type.simpleName} to array.")
+            else -> {
+                if (elementInfo.type.isSubclassOf(Struct::class)) {
+                    if (value !is Struct)
+                        error("Cannot set non-struct element to array.")
+                    unsafe.putAddress(elementAddress, value.address.base)
+                } else error("Cannot set element ${elementInfo.type.simpleName} to array.")
+            }
         }
 
     }

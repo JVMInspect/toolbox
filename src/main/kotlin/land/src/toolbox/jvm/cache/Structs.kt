@@ -64,4 +64,7 @@ class Structs(scope: Scope) : Scope by scope {
 
     inline operator fun <reified S : Struct> invoke(address: Long): S? =
         this(address, S::class) as S?
+
+    inline fun <reified S : Struct> allocate(): S =
+        this(unsafe.allocateMemory(sizeof(S::class).toLong()), S::class)!! as S
 }

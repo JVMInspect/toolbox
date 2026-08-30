@@ -32,6 +32,11 @@ class WindowsProcessHandle(private val handle: HANDLE, override val local: Boole
     }
 
     override fun read(src: Pointer, dst: Pointer, size: Int): Int {
+        if (local) {
+            dst.write(0, src.getByteArray(0, size), 0, size)
+            return size
+        }
+
         val read = IntByReference()
         check(kernel32.ReadProcessMemory(handle, src, dst, size, read)) {
             "ReadProcessMemory"
@@ -40,6 +45,11 @@ class WindowsProcessHandle(private val handle: HANDLE, override val local: Boole
     }
 
     override fun write(dst: Pointer, src: Pointer, size: Int): Int {
+        if (local) {
+            dst.write(0, src.getByteArray(0, size), 0, size)
+            return size
+        }
+
         val written = IntByReference()
         check(kernel32.WriteProcessMemory(handle, dst, src, size, written)) {
             "WriteProcessMemory"

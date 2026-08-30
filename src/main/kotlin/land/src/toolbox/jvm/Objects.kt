@@ -31,7 +31,24 @@ class Objects(val scope: Scope) {
         oop.markWord = 0 shr 1 or 1 // no_monitor_hash | no_bias_lock
     }
 
-    fun allocateMemory(size: Int): Long {
+    private val localObjectsStorage = mutableMapOf<Long, Object>()
+    private var byteArrayHeaderSize = 0
+
+    fun allocateObjectMemory(size: Int): Long {
+        if (scope.vm.isLocal) {
+            if (byteArrayHeaderSize == 0) {
+                byteArrayHeaderSize = ArrayOopDesc(scope.placeholder).headerSize(T_BYTE)
+            }
+            // we just create a local object
+            val toAllocate = size - byteArrayHeaderSize
+            val local = ByteArray(toAllocate) { 0 }
+
+            val localObject = toVMObject(scope, local as Object)
+
+            localObjectsStorage[localObject.address.base] = local as Object
+
+            return localObject.address.base
+        }
         // access the current heap
         val heap = scope.universe.collectedHeap!!
         val heapWord = heap.allocate(size.toLong())
@@ -45,7 +62,9 @@ class Objects(val scope: Scope) {
 
         val size = headerSize + elemSize * length
 
-        val address = allocateMemory(size)
+        val address = allocateObjectMemory(size)
+
+        println(java.lang.Long.toHexString(address))
 
         val array = ArrayOopDesc(Address(scope, address))
 

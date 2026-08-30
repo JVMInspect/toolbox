@@ -177,9 +177,20 @@ class CodeRewriter(val method: ConstMethod) {
                     continue
                 }
                 java == INVOKEDYNAMIC -> {
-                    val index = readShort(code, bci + 1, false).inv()
-                    val actual = pool.cache!![index.toInt()].cpIndex
-                    writeShort(rewritten, bci + 1, actual.toShort(), true)
+                    // The Rewriter replaces the constant pool index with a native endian u4 holding
+                    // ~index into a side table. Which side table moved in JDK 21: before, indy
+                    // shared the constant pool cache entries with field and method accesses; from
+                    // 21 on it has its own resolved indy entries, and reading the old table gives a
+                    // plausible looking but wrong index once the call site has been resolved.
+                    val indyEntries = cache.resolvedIndyEntries
+                    val index = readInt(code, bci + 1, false).inv()
+
+                    val actual = if (indyEntries != null)
+                        indyEntries[index]!!.cpIndex
+                    else
+                        cache[index].cpIndex.toShort()
+
+                    writeShort(rewritten, bci + 1, actual, true)
                     writeShort(rewritten, bci + 3, 0, true)
                 }
                 java == WIDE -> {

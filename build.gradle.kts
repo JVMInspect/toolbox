@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    implementation("software.coley:cafedude-core:2.1.2")
+    implementation("software.coley:cafedude-core:2.6.5")
     // slf4j
     implementation("org.slf4j:slf4j-api:1.7.32")
     implementation("org.slf4j:slf4j-simple:1.7.32")

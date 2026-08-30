@@ -36,12 +36,14 @@ class Arrays(scope: Scope) : Scope by scope {
         operator fun invoke(address: Address): A = handle(address, elementInfo) as A
     }
 
-    private fun elementSize(elementType: KClass<*>): Int = when (elementType) {
+    private fun elementSize(elementType: KClass<*>, isPointer: Boolean): Int = when (elementType) {
         Byte::class -> Byte.SIZE_BYTES
         Short::class, Char::class -> Short.SIZE_BYTES
         Int::class -> Int.SIZE_BYTES
-        // we assume this is a pointer
-        else -> 8
+        // Structs are normally referenced through a pointer, but a few arrays — the resolved
+        // invokedynamic entries among them — store their elements inline and stride by the size of
+        // the struct instead.
+        else -> if (!isPointer && structs.isStruct(elementType)) structs.sizeof(elementType) else 8
     }
 
     private fun elementOffset(elementType: KClass<*>): Int =
@@ -60,7 +62,7 @@ class Arrays(scope: Scope) : Scope by scope {
 
     fun <E : Any> ElementInfo(elementType: KClass<E>, isPointer: Boolean): Array.ElementInfo = Array.ElementInfo(
         type = elementType,
-        size = elementSize(elementType),
+        size = elementSize(elementType, isPointer),
         offset = elementOffset(elementType),
         isArray = isArray(elementType),
         // if the element type is a pointer, this will refer to the element type of the embedded array
@@ -134,9 +136,11 @@ class Arrays(scope: Scope) : Scope by scope {
             Factory<Array<*>>(arrayType, info)
         }
 
-        return factory(Address(this, address))
+        val array = factory(Address(this, address))
+        array.length = length
+        return array
     }
 
     inline fun <reified E : Any, reified A : Array<E>> allocate0(length: Int, isElementPointer: Boolean = false): Array<E> =
-        allocate0(length, E::class, A::class, isElementPointer) as A
+        allocate0(length, A::class, E::class, isElementPointer) as A
 }

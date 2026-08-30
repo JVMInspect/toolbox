@@ -11,4 +11,8 @@ class CompressedOops(address: Address) : Struct(address) {
     fun isCompressedOops(): Boolean {
         return narrowOopBase != 0L || narrowOopShift != 0
     }
+
+    val objectSize: Int by lazy {
+        if (isCompressedOops()) 4 else 8
+    }
 }

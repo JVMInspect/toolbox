@@ -1,11 +1,14 @@
 package land.src.toolbox.jvm.util
 
 import land.src.toolbox.jvm.VirtualMachine
+import land.src.toolbox.jvm.oop.ConstMethod
+import land.src.toolbox.jvm.oop.ConstantPool
 import land.src.toolbox.jvm.oop.Method
 import software.coley.cafedude.classfile.attribute.CodeAttribute
 import software.coley.cafedude.classfile.constant.ConstRef
 import software.coley.cafedude.classfile.constant.CpClass
 import software.coley.cafedude.classfile.constant.CpDynamic
+import software.coley.cafedude.classfile.constant.CpEntry
 import software.coley.cafedude.classfile.constant.CpInvokeDynamic
 import software.coley.cafedude.classfile.constant.CpNameType
 import software.coley.cafedude.classfile.constant.CpString
@@ -28,59 +31,9 @@ class CodeReplacer(val vm: VirtualMachine, val target: Method) {
         }
     }
 
-    fun replace(classBytes: ByteArray) {
-        // load the bytecode from the file and replace the target method with it
-        val classFileReader = ClassFileReader()
-
-        val classFile = classFileReader.read(classBytes)
-
-        // first step is we need to patch the constant pool to make sure all the references are correct
-        // since looking up and double-checking overlaps is a pain, we'll just add on
-
-        val pool = target.constMethod.constants
-        val method = classFile.methods.find { it.name.text == target.name && it.type.text == target.signature } ?: return
-
-        // get the cp data only used by that method and expand the pool
-
-        val filtered = method.cpAccesses()
-
-        // hack: cafedude doesnt add sub entries to the pool, so we need to do it manually
-        method.cpAccesses().forEach {
-            when (it) {
-                is CpClass -> filtered.add(it.name)
-                is CpString -> filtered.add(it.string)
-                is CpNameType -> {
-                    filtered.add(it.name)
-                    filtered.add(it.type)
-                }
-                is ConstRef -> {
-                    filtered.add(it.classRef)
-                    filtered.add(it.classRef.name)
-                    filtered.add(it.nameType)
-                    filtered.add(it.nameType.name)
-                    filtered.add(it.nameType.type)
-                }
-                is CpInvokeDynamic -> {
-                    filtered.add(it.nameType)
-                    filtered.add(it.nameType.name)
-                    filtered.add(it.nameType.type)
-                }
-                is CpDynamic -> {
-                    filtered.add(it.nameType)
-                    filtered.add(it.nameType.name)
-                    filtered.add(it.nameType.type)
-                }
-            }
-        }
-
-        pool.buildIndices()
-
-        val expandInformation = pool.expand(filtered.toMutableList().sortedBy { it.index }.toMutableList())
-
-        // process bytecode
+    fun replaceMethodCode(method: software.coley.cafedude.classfile.Method, expandInformation: ConstantPool.ExpandInformation, rewritten: Boolean = true) {
+        CpEntry.checkIndices = false
         val code = method.getAttribute(CodeAttribute::class.java)!!
-
-        //TODO: update exception table information
 
         code.instructions.forEach {
             when (it.opcode) {
@@ -136,9 +89,64 @@ class CodeReplacer(val vm: VirtualMachine, val target: Method) {
 
         }).writeCode(code.instructions)
 
-        // TODO: resize the code array if needed (realloc const method)
-        val constMethod = target.constMethod
-        constMethod.setCode(bytecode)
+        val newConstMethod = target.constMethod.replace(ConstMethod.ReplaceInformation(bytecode))
+
+        target.constMethod = newConstMethod
+    }
+
+    fun replaceOne(classBytes: ByteArray) {
+        // load the bytecode from the file and replace the target method with it
+        val classFileReader = ClassFileReader()
+
+        val classFile = classFileReader.read(classBytes)
+
+        // first step is we need to patch the constant pool to make sure all the references are correct
+        // since looking up and double-checking overlaps is a pain, we'll just add on
+
+        val pool = target.constMethod.constants
+        val method = classFile.methods.find { it.name.text == target.name && it.type.text == target.signature } ?: return
+
+        // get the cp data only used by that method and expand the pool
+
+        val filtered = method.cpAccesses()
+
+        // hack: cafedude doesnt add sub entries to the pool, so we need to do it manually
+        method.cpAccesses().forEach {
+            when (it) {
+                is CpClass -> filtered.add(it.name)
+                is CpString -> filtered.add(it.string)
+                is CpNameType -> {
+                    filtered.add(it.name)
+                    filtered.add(it.type)
+                }
+                is ConstRef -> {
+                    filtered.add(it.classRef)
+                    filtered.add(it.classRef.name)
+                    filtered.add(it.nameType)
+                    filtered.add(it.nameType.name)
+                    filtered.add(it.nameType.type)
+                }
+                is CpInvokeDynamic -> {
+                    filtered.add(it.nameType)
+                    filtered.add(it.nameType.name)
+                    filtered.add(it.nameType.type)
+                }
+                is CpDynamic -> {
+                    filtered.add(it.nameType)
+                    filtered.add(it.nameType.name)
+                    filtered.add(it.nameType.type)
+                }
+
+                else -> {}
+            }
+        }
+
+        pool.buildIndices()
+
+        val expandInformation = pool.expand(filtered.toMutableList().sortedBy { it.index }.toMutableList())
+
+        // now that we have the expanded pool, we can replace the method code
+        replaceMethodCode(method, expandInformation)
 
         target.constMethod.constants = expandInformation.pool
         target.constMethod.constants.poolHolder.constantPool = expandInformation.pool
